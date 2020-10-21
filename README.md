@@ -17,7 +17,7 @@
 
 ここではそのバージョンでの更新情報や不具合などについて記載されています。  
 このページを一番下までスクロールすると[**Assets**]という項目があります。Assetsの一番上に譜面エディタが置いてありますので、自分のOSに合わせたものをダウンロードしてください。  
-(譜面エディタの下にある[Source Code (zip)]と[Source Code (tar.gz)]はソースコードなので、ダウンロードする必要はありません。)  
+(譜面エディタの下にある[Source Code (zip)]と[Source Code (tar.gz)]はソースコードなので、ダウンロードする必要はありません。ソースコードを見ることもできますがコードは酷い有様なのであまり見ないでください)  
 ![HowToDownload_3](https://github.com/bababamizu/cosmicHeltzChartEditor/blob/image/_images/wiki/HowToDownload/HowToDownload_3.png)  
 
 ダウンロードしたファイルを解凍して、中にある[chartEditor.exe]を実行することで譜面エディタを起動できます。  
