@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags:
+  - Snap
+  - Hold
+  - Bar
+  - Bpm
+  - Stop
+  - Hit
+  - ExHit
+  - ExHold
+  - AreaMove
+  - Click
+  - Catch
+  - Flick_L
+  - Flick_R
+  - Swing
+  - Edge
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - 
+  - 
+  - snapLine
+  - keyBordNotes
+  - mouseNotes
+  - gimmickObjects
+  - areaMoveObjects
+  - exKeyBordNotes
+  - keyBordLanes
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Field Line
+    uniqueID: 514933663
+    locked: 0
+  - name: Notes
+    uniqueID: 2186557329
+    locked: 0
