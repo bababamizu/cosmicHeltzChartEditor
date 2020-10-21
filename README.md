@@ -2,7 +2,7 @@
 
 現在開発中のゲーム"cosmic HeltZ"専用譜面製作ツールです。  
 <br>
-詳しいことは[Wiki](https://github.com/bababamizu/cosmicHeltzChartEditor/wiki)に記載していく予定です。  [Wikiとは？](#howToWiki)
+詳しいことは[Wiki](https://github.com/bababamizu/cosmicHeltzChartEditor/wiki)に記載していく予定です。
 <br>
 <br>
 
@@ -23,7 +23,7 @@
 ダウンロードしたファイルを解凍して、中にある[chartEditor.exe]を実行することで譜面エディタを起動できます。  
 <br>
 
-<h2 id="howToWiki">Wikiとは？</h2>
+## Wikiとは？
 Wikiはこの譜面エディタの使い方などをまとめたサイトです。  
 譜面エディタを使う上で分からないことがあればここを見てください。  
 <br>
