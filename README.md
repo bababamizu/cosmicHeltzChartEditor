@@ -17,5 +17,6 @@
 
 ## プレビュー
   
-ここに画像を貼る 
+![プレビュー1](https://github.com/bababamizu/cosmicHeltzChartEditor/blob/image/_images/readme/20201021editor.png)
+
 <br>
