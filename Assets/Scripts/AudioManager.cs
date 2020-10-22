@@ -153,10 +153,7 @@ public class AudioManager : MonoBehaviour
             if(videoPlayer.frame >= videoPlayer.frameCount - 1f)
                 videoPlayer.Pause();
         }
-            
-
     }
-    
 
     public void SetAudioTime(float value)
     {
@@ -166,8 +163,6 @@ public class AudioManager : MonoBehaviour
         if (videoLength > 0f)
             videoPlayer.frame = (long)Mathf.Clamp(videoPlayer.frame + value * videoPlayer.frameRate, 0f, (long)videoPlayer.frameCount);
     }
-
-
 
 
     public void OpenExistFile()

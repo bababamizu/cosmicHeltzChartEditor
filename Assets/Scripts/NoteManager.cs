@@ -33,11 +33,16 @@ public class NoteManager : MonoBehaviour{
     private GameObject[] objectPrefab = new GameObject[9];
 
     private string initDirectory;
+    private string exportFilePath;
 
     [System.NonSerialized]
     public List<List<NoteData>> notesDatas = new List<List<NoteData>>();
     [System.NonSerialized]
     public List<List<ObjectData>> objDatas = new List<List<ObjectData>>();
+
+    [System.NonSerialized]
+    public List<GuideData> guideList = new List<GuideData>();
+
 
     public Array notesTypeArray = Enum.GetValues(typeof(NotesType));
     public Array otherObjTypeArray = Enum.GetValues(typeof(OtherObjectsType));
@@ -144,8 +149,8 @@ public class NoteManager : MonoBehaviour{
 
         if (obj != null || (type == (int)OtherObjectsType.B_Bar && isImport))
         {
-            NoteData noteData;
-            ObjectData objData;
+            NoteData noteData = null;
+            ObjectData objData = null;
 
             switch (type)
             {
@@ -238,6 +243,7 @@ public class NoteManager : MonoBehaviour{
                 default:
                     break;
             }
+
         }
         if (!isImport)
             gameMng.UpdateNotesCount();
@@ -336,6 +342,18 @@ public class NoteManager : MonoBehaviour{
 
         if (notePos.type < 10)
         {
+            // 効果音データの削除
+            if (notesDatas[notePos.type][notePos.num].startGuide != null)
+            {
+                notesDatas[notePos.type][notePos.num].startGuide = null;
+                guideList.Remove(notesDatas[notePos.type][notePos.num].startGuide);
+            }
+            if (notesDatas[notePos.type][notePos.num].endGuide != null)
+            {
+                notesDatas[notePos.type][notePos.num].endGuide = null;
+                guideList.Remove(notesDatas[notePos.type][notePos.num].endGuide);
+            } 
+
             notesDatas[notePos.type][notePos.num].obj.SetActive(false);
             notesDatas[notePos.type].RemoveAt(notePos.num);
         }
@@ -403,7 +421,23 @@ public class NoteManager : MonoBehaviour{
             for (int i = notesDatas[(int)type].Count() - 1; i >= 0; i--)
             {
                 if (!notesDatas[(int)type][i].obj.activeSelf)
+                {
+                    // 効果音データの削除
+                    if (notesDatas[(int)type][i].startGuide != null)
+                    {
+                        notesDatas[(int)type][i].startGuide = null;
+                        guideList.Remove(notesDatas[(int)type][i].startGuide);
+                    }
+                    if (notesDatas[(int)type][i].endGuide != null)
+                    {
+                        notesDatas[(int)type][i].endGuide = null;
+                        guideList.Remove(notesDatas[(int)type][i].endGuide);
+                    }
+
+                    // ノーツデータの削除
                     notesDatas[(int)type].RemoveAt(i);
+                }
+                    
             }
         }
 
@@ -444,6 +478,7 @@ public class NoteManager : MonoBehaviour{
         ObjectData editedBarData;
         Line line;
         float measure = measure_n / (float)measure_d;
+        float bar;
 
         editedBarData = objDatas[(int)OtherObjectsType.B_Bar - 10][num];
         editedBarData.length_bar = measure;
@@ -464,6 +499,7 @@ public class NoteManager : MonoBehaviour{
         else
             line.UpdateMeasure(true, measure_n, measure_d);
 
+        bar = editedBarData.bar;
 
         // 次の拍子変化までの小節の拍子を変更する
         for (int i = num + 1; i < objDatas[(int)OtherObjectsType.B_Bar - 10].Count; i++)
@@ -471,8 +507,11 @@ public class NoteManager : MonoBehaviour{
             editedBarData = objDatas[(int)OtherObjectsType.B_Bar - 10][i];
             line = editedBarData.obj.GetComponent<Line>();
 
+            bar += measure;
+
             if (!line.isMeasureChange)
             {
+                editedBarData.bar = bar;
                 editedBarData.length_bar = measure;
                 editedBarData.data = measure_d;
                 line.UpdateMeasure(false, measure_n, measure_d);
@@ -652,7 +691,7 @@ public class NoteManager : MonoBehaviour{
 
     #region [指定したノーツの情報を更新するメソッド]
 
-    public void SetNotesTime(ObjectData note, int type)
+    public void SetNotesTime(NoteData note, int type)
     {
         float length = 0f;
         int listPtr = 0;
@@ -701,12 +740,31 @@ public class NoteManager : MonoBehaviour{
 
         // 譜面データの時間を計算
         note.time = lineMng.GetNoteTimeFromNoteBar(note.bar_forTime);
+        if (note.startGuide != null)
+            note.startGuide.time = note.time;
+        else
+        {
+            GuideData startGuide = new GuideData(note, note.time);
+            guideList.Add(startGuide);
+            note.startGuide = startGuide;
+        }
+
         if (note.length_bar_forTime > 0f)
+        {
             note.length_time = lineMng.GetNoteTimeFromNoteBar(note.bar_forTime + note.length_bar_forTime) - note.time;
+            if (note.endGuide != null)
+                note.endGuide.time = note.time + note.length_time;
+            else
+            {
+                GuideData endGuide = new GuideData(note, note.time + note.length_time);
+                guideList.Add(endGuide);
+                note.endGuide = endGuide;
+            }
+        }
 
-        
+        // 効果音データをソート
+        guideList.Sort((a, b) => a.time.CompareTo(b.time));
     }
-
 
     /// <summary>
     /// エリア移動ノーツの情報を更新する
@@ -943,10 +1001,32 @@ public class NoteManager : MonoBehaviour{
             foreach (NoteData note in notesDatas[(int)notesType])
             {
                 note.time = lineMng.GetNoteTimeFromNoteBar(note.bar_forTime);
+                if (note.startGuide != null)
+                    note.startGuide.time = note.time;
+                else
+                {
+                    GuideData startGuide = new GuideData(note, note.time);
+                    guideList.Add(startGuide);
+                    note.startGuide = startGuide;
+                }
+
                 if (note.length_bar_forTime > 0f)
+                {
                     note.length_time = lineMng.GetNoteTimeFromNoteBar(note.bar_forTime + note.length_bar_forTime) - note.time;
+                    if (note.endGuide != null)
+                        note.endGuide.time = note.time + note.length_time;
+                    else
+                    {
+                        GuideData endGuide = new GuideData(note, note.time + note.length_time);
+                        guideList.Add(endGuide);
+                        note.endGuide = endGuide;
+                    }
+                }
             }
         }
+
+        // 効果音データをソート
+        guideList.Sort((a, b) => a.time.CompareTo(b.time));
 
         // その他データの時間を計算
         foreach (OtherObjectsType objType in otherObjTypeArray)
@@ -1003,6 +1083,8 @@ public class NoteManager : MonoBehaviour{
         foreach (OtherObjectsType objType in otherObjTypeArray)
             objDatas.Add(new List<ObjectData>());
 
+        guideList = new List<GuideData>();
+
         gameMng.UpdateNotesCount();
     }
 
@@ -1022,6 +1104,7 @@ public class NoteManager : MonoBehaviour{
         foreach (OtherObjectsType objType in otherObjTypeArray)
             objDatas[(int)objType - 10].Sort((a, b) => a.bar.CompareTo(b.bar));
     }
+
 
     /// <summary>
     /// エリア移動リストを出現順→data順にソートする関数
@@ -1050,7 +1133,6 @@ public class NoteManager : MonoBehaviour{
 
     public bool Export(string music_id, int diff, int level, string charter, bool isExportAs)
     {
-        Debug.Log(initDirectory);
         string path = initDirectory + string.Format(@"\{0}[{1}].csv", music_id, diff);
         if (!File.Exists(path) || isExportAs)
         {
@@ -1167,6 +1249,7 @@ public class NoteManager : MonoBehaviour{
             FileStream fs;
             string strStream;
 
+            string[] settingStr = null;
             #endregion
 
             // 譜面データを読み込み、分割する
@@ -1217,8 +1300,7 @@ public class NoteManager : MonoBehaviour{
                     if (line.Length != 6)
                         throw new Exception(Path.GetFileName(paths[0]) + " - ヘッダ部の書式が異なります");
 
-                    gameMng.ImportSettings(line[0], int.Parse(line[1]), int.Parse(line[2]), line[3], float.Parse(line[5]));
-                    // startBpm = float.Parse(line[4]);
+                    settingStr = line;
                     continue;
                 }
 
@@ -1242,6 +1324,9 @@ public class NoteManager : MonoBehaviour{
             // スナップ線を設定
             gameMng.ChangeSnapLine(true);
 
+            // Settingの読み込み
+            if(settingStr.Length == 6)
+                gameMng.ImportSettings(settingStr[0], int.Parse(settingStr[1]), int.Parse(settingStr[2]), settingStr[3], float.Parse(settingStr[5]));
 
             // 再度テキストの読み込み
             foreach (string[] line in readDataStr)
@@ -1260,7 +1345,8 @@ public class NoteManager : MonoBehaviour{
                     float.TryParse(line[2], out length) && float.TryParse(line[3], out pos) &&
                     float.TryParse(line[4], out data))
                 {
-                    AddNoteFromBar(bar, type, length, pos, data, true);
+                    if (type != (int)OtherObjectsType.B_Bar)
+                        AddNoteFromBar(bar, type, length, pos, data, true);
                 }
 
             }
@@ -1294,7 +1380,11 @@ public class NoteManager : MonoBehaviour{
             return 1;
         else
         {
-            if (a.type < b.type)
+            if (a.type >= 10 && b.type < 10)
+                return -1;
+            else if(a.type < 10 && b.type >= 10)
+                return 1;
+            else if (a.type < b.type)
                 return -1;
             else if (a.type > b.type)
                 return 1;

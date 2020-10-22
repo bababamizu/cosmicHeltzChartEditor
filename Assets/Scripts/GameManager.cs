@@ -67,6 +67,9 @@ public class GameManager : MonoBehaviour {
     Vector3 mousePos;
     RaycastHit2D hit;
 
+    float before_time = 0f;
+    int playShot_current = 0;
+
     bool isNormalPlaying;
     public commandMode cmdMode { get; private set; }
 
@@ -76,6 +79,8 @@ public class GameManager : MonoBehaviour {
         Application.wantsToQuit += WantsToQuit;
         SetCamWidthFromWindowSize(Screen.width, Screen.height);
         camExpansionRate = 600f;
+        edited = false;
+        uiMng.SetExportEnable(false);
         UpdateNotesType(0);
         cursorMng.SetCursor(CursorType.Default);
         UpdateUndoRedoEnable();
@@ -296,15 +301,16 @@ public class GameManager : MonoBehaviour {
                 noteTypeId = noteTypeId_unShift;
             }
         }
-            
 
+        // 時間が巻き戻っている場合は効果音探索位置を最初に戻す
+        if (time < before_time)
+            playShot_current = 0;
 
         // 効果音再生(通常再生時に限る)
-        /*
         if (audioMng.audioSource.clip != null && audioMng.audioSource.isPlaying && isNormalPlaying)
             PlayShot(time, Time.deltaTime);
-        */
-
+        
+        before_time = time;
 
         // Escキー : 終了
         if (Input.GetKeyDown(KeyCode.Escape))
@@ -344,16 +350,20 @@ public class GameManager : MonoBehaviour {
     /// </summary>
     public void PlayShot(float time, float deltaTime)
     {
-        foreach (NotesType notesType in noteMng.notesTypeArray)
+        bool isBreak = false;
+        for (int i = playShot_current; i < noteMng.guideList.Count; i++)
         {
-            foreach (NoteData note in noteMng.notesDatas[(int)notesType])
+            if (before_time - 0.04f < noteMng.guideList[i].time && noteMng.guideList[i].time - 0.04f <= time)
+                audioMng.PlayClap();
+            else if (noteMng.guideList[i].time > time)
             {
-                if (time - deltaTime < note.time && note.time <= time)
-                    audioMng.PlayClap();
-                else if (note.time > time)
-                    break;
-            }
+                playShot_current = i;
+                isBreak = true;
+                break;
+            } 
         }
+        if (!isBreak)
+            playShot_current = noteMng.guideList.Count;
         return;
     }
 
@@ -369,11 +379,8 @@ public class GameManager : MonoBehaviour {
 
     public void SetEdited(bool isEdited)
     {
-        if (edited != isEdited)
-        {
-            edited = isEdited;
-            uiMng.SetExportEnable(edited);
-        }
+        edited = isEdited;
+        uiMng.SetExportEnable(isEdited);
     }
 
     public void Undo()
@@ -413,16 +420,17 @@ public class GameManager : MonoBehaviour {
         ChangeSnapLineX();
 
         // 一旦64分のスナップ線を出現させておく(重いInstantiate()をここでまとめてやっておく)
-        lineMng.SetLine(audioMng.GetMusicLength(), 64, uiMng.GetSnapYToggle());
+        lineMng.SetLine(audioMng.GetMusicLength());
+        lineMng.SetSnapLine(audioMng.GetMusicLength(), 64, uiMng.GetSnapYToggle());
 
         // 改めてラインを設定
-        lineMng.SetLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
+        lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
 
     }
 
     public void ChangeSnapLine(bool isNotesMove)
     {
-        ChangeSnapLineY();
+        ChangeLineY();
         if (isSetLine) {
             ChangeVerticalLine(isNotesMove);
             ChangeSnapLineX();
@@ -431,10 +439,19 @@ public class GameManager : MonoBehaviour {
         }
     }
 
+    public void ChangeLineY()
+    {
+        if (isSetLine)
+        {
+            lineMng.SetLine(audioMng.GetMusicLength());
+            lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
+        }
+    }
+
     public void ChangeSnapLineY()
     {
         if (isSetLine)
-            lineMng.SetLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
+            lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
     }
     public void ChangeSnapLineX()
     {
@@ -470,6 +487,28 @@ public class GameManager : MonoBehaviour {
             }
         }
     }
+
+
+    public void SetBgmVolume(float value)
+    {
+        audioMng.audioSource.volume = value;
+    }
+
+    public void SetSeVolume(float value)
+    {
+        audioMng.seSource.volume = value;
+    }
+
+    public void SetBgmMute(bool isMute)
+    {
+        audioMng.audioSource.mute = isMute;
+    }
+
+    public void SetSeMute(bool isMute)
+    {
+        audioMng.seSource.mute = isMute;
+    }
+
 
     /// <summary>
     /// カメラの倍率を更新する
@@ -605,11 +644,12 @@ public class GameManager : MonoBehaviour {
         return worldPos;
     }
 
+
     private bool WantsToQuit()
     {
         if (isSetLine && edited) {
             // TODO : 終了時に保存するか確認するダイアログを出す (現在はExportを開くだけ)
-            // Export(true, true);
+            Export(true, true);
             return true;
         }
         return true;
@@ -1026,11 +1066,14 @@ public class GameManager : MonoBehaviour {
             }
             if (uiMng.GetSnapXToggle())
             {
-                snapObjX = snapPoolX.SartchNearGameObjectX(snapX_prefab, pos.x);
-                if (snapObjX != null)
-                    pos.x = snapObjX.transform.position.x;
-                else
-                    return;
+                if(chartType == ChartType.mouse || chartType == ChartType.areaMove)
+                {
+                    snapObjX = snapPoolX.SartchNearGameObjectX(snapX_prefab, pos.x);
+                    if (snapObjX != null)
+                        pos.x = snapObjX.transform.position.x;
+                    else
+                        return;
+                }
             }
         }
 
