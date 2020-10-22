@@ -77,6 +77,7 @@ public class GameManager : MonoBehaviour {
 
     void Start () {
         Application.wantsToQuit += WantsToQuit;
+        LoadAudioVolume();
         SetCamWidthFromWindowSize(Screen.width, Screen.height);
         camExpansionRate = 600f;
         edited = false;
@@ -318,6 +319,31 @@ public class GameManager : MonoBehaviour {
 
     }
 
+    public void InitNotesList()
+    {
+        noteMng.DeleteAllObjects();
+    }
+
+    public void SetEdited(bool isEdited)
+    {
+        edited = isEdited;
+        uiMng.SetExportEnable(isEdited);
+    }
+
+
+    /// <summary>
+    /// 現在選択中のノーツの種類を更新する
+    /// </summary>
+    public void UpdateNotesType(int type)
+    {
+        noteTypeId_unShift = type;
+        noteTypeId = type;
+        rayLayerMask = GetLayerMaskForRay();
+    }
+
+
+    #region [カメラ設定]
+
     /// <summary>
     /// ウィンドウの比率に合わせてカメラの描画範囲を更新する
     /// </summary>
@@ -345,6 +371,11 @@ public class GameManager : MonoBehaviour {
 
     }
 
+    #endregion
+
+
+    #region [効果音の再生]
+
     /// <summary>
     /// 現在時間から効果音を取得する
     /// </summary>
@@ -360,132 +391,52 @@ public class GameManager : MonoBehaviour {
                 playShot_current = i;
                 isBreak = true;
                 break;
-            } 
+            }
         }
         if (!isBreak)
             playShot_current = noteMng.guideList.Count;
         return;
     }
 
-    public void SnapY_toggle(bool isSnap)
-    {
-        lineMng.SnapY_toggle(isSnap);
-    }
 
-    public void SnapX_toggle(bool isSnap)
-    {
-        lineMng.SnapX_toggle(isSnap);
-    }
+    #endregion
 
-    public void SetEdited(bool isEdited)
-    {
-        edited = isEdited;
-        uiMng.SetExportEnable(isEdited);
-    }
 
-    public void Undo()
-    {
-        cmdMode = commandMode.Undo;
-        commandMng.Undo();
-        cmdMode = commandMode.Do;
-        UpdateUndoRedoEnable();
-    }
-    public void Redo()
-    {
-        cmdMode = commandMode.Redo;
-        commandMng.Redo();
-        cmdMode = commandMode.Do;
-        UpdateUndoRedoEnable();
-    }
-
-    public void UpdateUndoRedoEnable()
-    {
-        uiMng.UpdateUndoButtonEnable(commandMng.IsCanUndo());
-        uiMng.UpdateRedoButtonEnable(commandMng.IsCanRedo());
-    }
+    #region [BGM / SE]
 
     /// <summary>
-    /// 曲読み込み時に最初にスナップ線を設定する処理
+    /// 音量を初期値に設定する
     /// </summary>
-    public void SetSnapLine()
+    private void LoadAudioVolume()
     {
-        isSetLine = true;
+        float bgm_volume = PlayerPrefs.GetFloat("chartEditor.bgmVolume", 1f);
+        int bgm_isMute = PlayerPrefs.GetInt("chartEditor.bgmMute", 0);
 
-        uiMng.SetCamExpansionSliderEnable(true);
-        uiMng.SetSettingButtonEnable(true);
+        float se_volume = PlayerPrefs.GetFloat("chartEditor.seVolume", 1f);
+        int se_isMute = PlayerPrefs.GetInt("chartEditor.seMute", 0);
 
-        lineMng.SetUpBPMChange();
-
-        ChangeVerticalLine(true);
-        ChangeSnapLineX();
-
-        // 一旦64分のスナップ線を出現させておく(重いInstantiate()をここでまとめてやっておく)
-        lineMng.SetLine(audioMng.GetMusicLength());
-        lineMng.SetSnapLine(audioMng.GetMusicLength(), 64, uiMng.GetSnapYToggle());
-
-        // 改めてラインを設定
-        lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
-
+        uiMng.SetBgmVolume(bgm_volume, bgm_isMute == 1);
+        uiMng.SetSeVolume(se_volume, se_isMute == 1);
     }
 
-    public void ChangeSnapLine(bool isNotesMove)
-    {
-        ChangeLineY();
-        if (isSetLine) {
-            ChangeVerticalLine(isNotesMove);
-            ChangeSnapLineX();
-            noteMng.UpdateAreaMove();
-            edited = true;
-        }
-    }
-
-    public void ChangeLineY()
-    {
-        if (isSetLine)
-        {
-            lineMng.SetLine(audioMng.GetMusicLength());
-            lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
-        }
-    }
-
-    public void ChangeSnapLineY()
-    {
-        if (isSetLine)
-            lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
-    }
-    public void ChangeSnapLineX()
-    {
-        if (isSetLine)
-            lineMng.SetSnapX(audioMng.GetMusicLength(), uiMng.GetSnapXSplit(), uiMng.GetSnapXToggle());
-    }
-
-    public void ChangeVerticalLine(bool isNotesMove)
-    {
-        if(audioMng.audioSource.clip != null)
-        {
-            lineMng.SetVerticalLine(audioMng.GetMusicLength());
-            if(isNotesMove)
-                noteMng.UpdateNotePosition();
-            SetEdited(true);
-        }
-            
-    }
 
     /// <summary>
-    /// カメラの倍率を差分値だけ変更する
+    /// 音量を保存する
     /// </summary>
-    public void ChangeCamExpansionRate(int diff)
+    private void SaveAudioVolume()
     {
-        if (isSetLine && diff != 0)
-        {
-            int sliderValue = uiMng.GetCamExpansionSliderValue() + diff;
+        PlayerPrefs.SetFloat("chartEditor.bgmVolume", uiMng.GetBgmValue());
+        PlayerPrefs.SetFloat("chartEditor.seVolume", uiMng.GetSeValue());
 
-            if (0f <= sliderValue && sliderValue <= 16f)
-            {
-                UpdateCamExpansionRate(300f * Mathf.Pow(2f, sliderValue / 4f));
-                uiMng.SetCamExpansionSlider(sliderValue);
-            }
-        }
+        if(uiMng.GetIsBgmMute())
+            PlayerPrefs.SetInt("chartEditor.bgmMute", 1);
+        else
+            PlayerPrefs.GetInt("chartEditor.bgmMute", 0);
+
+        if (uiMng.GetIsSeMute())
+            PlayerPrefs.SetInt("chartEditor.seMute", 1);
+        else
+            PlayerPrefs.GetInt("chartEditor.seMute", 0);
     }
 
 
@@ -510,6 +461,142 @@ public class GameManager : MonoBehaviour {
     }
 
 
+    
+    
+    #endregion
+
+
+    #region [Undo / Redo]
+
+    public void Undo()
+    {
+        cmdMode = commandMode.Undo;
+        commandMng.Undo();
+        cmdMode = commandMode.Do;
+        UpdateUndoRedoEnable();
+    }
+    public void Redo()
+    {
+        cmdMode = commandMode.Redo;
+        commandMng.Redo();
+        cmdMode = commandMode.Do;
+        UpdateUndoRedoEnable();
+    }
+
+    public void UpdateUndoRedoEnable()
+    {
+        uiMng.UpdateUndoButtonEnable(commandMng.IsCanUndo());
+        uiMng.UpdateRedoButtonEnable(commandMng.IsCanRedo());
+    }
+
+    #endregion
+
+
+    #region [スナップ]
+
+    /// <summary>
+    /// 曲読み込み時に最初にスナップ線を設定する処理
+    /// </summary>
+    public void InitLine()
+    {
+        isSetLine = true;
+
+        uiMng.SetCamExpansionSliderEnable(true);
+        uiMng.SetSettingButtonEnable(true);
+
+        lineMng.SetUpBPMChange();
+
+        ChangeVerticalLine(true);
+        ChangeSnapLineX();
+
+        // 一旦64分のスナップ線を出現させておく(重いInstantiate()をここでまとめてやっておく)
+        lineMng.SetLine(audioMng.GetMusicLength());
+        lineMng.SetSnapLine(audioMng.GetMusicLength(), 64, uiMng.GetSnapYToggle());
+
+        // 改めてラインを設定
+        lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
+
+    }
+
+    /// <summary>
+    /// 小節線とスナップ線を変更する
+    /// </summary>
+    public void ChangeLine(bool isNotesMove)
+    {
+        if (isSetLine) {
+            // 小節線とスナップ線の変更
+            lineMng.SetLine(audioMng.GetMusicLength());
+            lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
+
+            ChangeVerticalLine(isNotesMove);
+            ChangeSnapLineX();
+            noteMng.UpdateAreaMove();
+            edited = true;
+        }
+    }
+
+    /// <summary>
+    /// Y軸スナップ線のみを変更する
+    /// </summary>
+    public void ChangeSnapLineY()
+    {
+        if (isSetLine)
+            lineMng.SetSnapLine(audioMng.GetMusicLength(), uiMng.GetSnapYSplit(), uiMng.GetSnapYToggle());
+    }
+
+    /// <summary>
+    /// X軸スナップ線のみを変更する
+    /// </summary>
+    public void ChangeSnapLineX()
+    {
+        if (isSetLine)
+            lineMng.SetSnapX(audioMng.GetMusicLength(), uiMng.GetSnapXSplit(), uiMng.GetSnapXToggle());
+    }
+
+
+    public void SnapX_toggle(bool isSnap)
+    {
+        lineMng.SnapX_toggle(isSnap);
+    }
+
+
+    /// <summary>
+    /// 楽曲の長さ・ズーム率に合わせて線の長さを変更する
+    /// </summary>
+    public void ChangeVerticalLine(bool isNotesMove)
+    {
+        if (audioMng.audioSource.clip != null)
+        {
+            lineMng.SetVerticalLine(audioMng.GetMusicLength());
+            if (isNotesMove)
+                noteMng.UpdateNotePosition();
+            SetEdited(true);
+        }
+    }
+
+
+    #endregion
+
+
+    #region [描画範囲(ズーム率)設定]
+
+    /// <summary>
+    /// カメラの倍率を差分値だけ変更する
+    /// </summary>
+    public void ChangeCamExpansionRate(int diff)
+    {
+        if (isSetLine && diff != 0)
+        {
+            int sliderValue = uiMng.GetCamExpansionSliderValue() + diff;
+
+            if (0f <= sliderValue && sliderValue <= 16f)
+            {
+                UpdateCamExpansionRate(300f * Mathf.Pow(2f, sliderValue / 4f));
+                uiMng.SetCamExpansionSlider(sliderValue);
+            }
+        }
+    }
+
     /// <summary>
     /// カメラの倍率を更新する
     /// </summary>
@@ -519,21 +606,36 @@ public class GameManager : MonoBehaviour {
         {
             camExpansionRate = size;
             uiMng.SetMaxAreaCamPosition(GetBarLength());
-            ChangeSnapLine(false);
+            ChangeLine(false);
             ChangeVerticalLine(true);
             UpdateHoldObjectForCam();
         }
     }
 
-    /// <summary>
-    /// 現在選択中のノーツの種類を更新する
-    /// </summary>
-    public void UpdateNotesType(int type)
+    #endregion
+
+
+    #region [各種情報の取得]
+
+    public float GetLength()
     {
-        noteTypeId_unShift = type;
-        noteTypeId = type;
-        rayLayerMask = GetLayerMaskForRay();
+        return audioMng.GetMusicLength();
     }
+
+    public float GetBarLength()
+    {
+        return lineMng.GetNoteBarFromMusicTime(audioMng.GetMusicLength());
+    }
+
+    public float GetOffset()
+    {
+        return uiMng.GetOffset();
+    }
+
+    #endregion
+
+
+    #region [各種表示の更新]
 
     /// <summary>
     /// ノーツ数表示を更新する
@@ -550,6 +652,11 @@ public class GameManager : MonoBehaviour {
     {
         lineMng.SetLightMask(GetChartType(noteTypeId));
     }
+
+    #endregion
+
+
+    #region [ギミックの編集]
 
     /// <summary>
     /// 小節リストの指定した番号の項目を編集する
@@ -586,21 +693,10 @@ public class GameManager : MonoBehaviour {
         noteMng.EditStopChange(bar, length);
     }
 
-    public float GetLength()
-    {
-        return audioMng.GetMusicLength();
-    }
+    #endregion
 
-    public float GetBarLength()
-    {
-        return lineMng.GetNoteBarFromMusicTime(audioMng.GetMusicLength());
-    }
 
-    public float GetOffset()
-    {
-        return uiMng.GetOffset();
-    }
-
+    #region [Import / Export]
 
     public void Import()
     {
@@ -610,11 +706,6 @@ public class GameManager : MonoBehaviour {
             UpdateNotesCount();
         }
             
-    }
-
-    public void InitNotesList()
-    {
-        noteMng.DeleteAllObjects();
     }
 
     public void ImportSettings(string music_id, int diff, int level, string charter, float offset)
@@ -632,28 +723,25 @@ public class GameManager : MonoBehaviour {
         
     }
 
-    /// <summary>
-    /// 画面のクリック座標をワールド座標に変換する
-    /// </summary>
-    private Vector3 MousePosToWorldPos(Vector2 mousePos)
-    {
-        Vector3 canvas_pos = ExMethod.GetPosition_touchToCanvas(canvasRect, mousePos);
+    #endregion
 
-        Vector3 worldPos = spotCam.ScreenToWorldPoint(mousePos);
-
-        return worldPos;
-    }
 
 
     private bool WantsToQuit()
     {
+        SaveAudioVolume();
+
         if (isSetLine && edited) {
             // TODO : 終了時に保存するか確認するダイアログを出す (現在はExportを開くだけ)
             Export(true, true);
             return true;
         }
+
         return true;
     }
+
+
+
 
 
     /// <summary>
@@ -1141,6 +1229,7 @@ public class GameManager : MonoBehaviour {
 
     }
 
+
     /// <summary>
     /// ノーツの位置を変更して情報を更新する
     /// </summary>
@@ -1211,10 +1300,7 @@ public class GameManager : MonoBehaviour {
         // ノーツを検索
         objPos = noteMng.FindNoteFromPos(notesTypeList, notePosX, pos.y - General.objectAreaPos.y);
         if (objPos.num < 0)
-        {
-            Debug.Log("Search Failed");
             return;
-        }
 
         // ノーツを移動
         obj.transform.position = after_pos;
@@ -1393,7 +1479,7 @@ public class GameManager : MonoBehaviour {
                         commandMng.Redo();
                         break;
                 }
-                
+
                 UpdateUndoRedoEnable();
                 return;
             }
@@ -1468,6 +1554,8 @@ public class GameManager : MonoBehaviour {
         noteMng.notesDatas[notePos.type][notePos.num].width = fixedWidth;
     }
 
+
+
     /// <summary>
     /// ロングノーツの長さを変更する
     /// </summary>
@@ -1516,13 +1604,16 @@ public class GameManager : MonoBehaviour {
         noteMng.UpdateAllNotesTime();
     }
 
+
+
+
     /// <summary>
     /// カメラの拡大率に合わせてロングノートの描画長を調整する
     /// </summary>
     public void UpdateHoldObjectForCam()
     {
         List<NotesType> notesTypeList = new List<NotesType>() { NotesType.N_Hold, NotesType.N_ExHold };
-        foreach(NotesType type in notesTypeList)
+        foreach (NotesType type in notesTypeList)
         {
             foreach (NoteData item in noteMng.notesDatas[(int)type])
             {
@@ -1558,9 +1649,25 @@ public class GameManager : MonoBehaviour {
                 }
             }
         }
-        
-
     }
+
+
+
+
+    #region [その他汎用メソッド]
+
+    /// <summary>
+    /// 画面のクリック座標をワールド座標に変換する
+    /// </summary>
+    private Vector3 MousePosToWorldPos(Vector2 mousePos)
+    {
+        Vector3 canvas_pos = ExMethod.GetPosition_touchToCanvas(canvasRect, mousePos);
+
+        Vector3 worldPos = spotCam.ScreenToWorldPoint(mousePos);
+
+        return worldPos;
+    }
+
 
     /// <summary>
     /// ノーツデータがどの譜面属性(キーボード系 / マウス系 / 移動系 / ギミック系)に属するかを返す
@@ -1668,5 +1775,8 @@ public class GameManager : MonoBehaviour {
                 return LayerMask.GetMask(new string[] { "gimmickObjects" });
         }
     }
+
+
+    #endregion
 
 }

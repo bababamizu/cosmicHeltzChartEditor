@@ -255,7 +255,7 @@ public class AudioManager : MonoBehaviour
                 isBegin = false;
 
                 gameMng.InitNotesList();
-                gameMng.SetSnapLine();
+                gameMng.InitLine();
                 uiMng.SetMaxAreaCamPosition(gameMng.GetBarLength());
 
 

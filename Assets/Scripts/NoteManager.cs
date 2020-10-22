@@ -520,7 +520,7 @@ public class NoteManager : MonoBehaviour{
                 break;
         }
 
-        gameMng.ChangeSnapLine(false);
+        gameMng.ChangeLine(false);
     }
 
     /// <summary>
@@ -564,7 +564,7 @@ public class NoteManager : MonoBehaviour{
                 break;
         }
 
-        gameMng.ChangeSnapLine(false);
+        gameMng.ChangeLine(false);
     }
 
     /// <summary>
@@ -607,7 +607,7 @@ public class NoteManager : MonoBehaviour{
         }
 
         UpdateAllNotesTime();
-        gameMng.ChangeSnapLine(false);
+        gameMng.ChangeLine(false);
     }
 
 
@@ -644,7 +644,7 @@ public class NoteManager : MonoBehaviour{
             }
         }
 
-        gameMng.ChangeSnapLine(false);
+        gameMng.ChangeLine(false);
     }
 
     /// <summary>
@@ -679,7 +679,7 @@ public class NoteManager : MonoBehaviour{
         }
 
         UpdateAllNotesTime();
-        gameMng.ChangeSnapLine(false);
+        gameMng.ChangeLine(false);
     }
 
 
@@ -1198,10 +1198,16 @@ public class NoteManager : MonoBehaviour{
                     foreach (ExportData data in exportList)
                     {
                         // 行ごとの出力処理
-                        string[] str = { data.bar.ToString(), data.type.ToString(), data.length.ToString(), data.position.ToString(), data.data.ToString() };
-                        string str2 = string.Join(",", str);
-                        if (str2 != "" && str != null)
-                            sw.WriteLine(str2);
+                        s1 = new string[]{ 
+                            data.bar.ToString(), 
+                            data.type.ToString(), 
+                            data.length.ToString(), 
+                            data.position.ToString(), 
+                            data.data.ToString()
+                        };
+                        s2 = string.Join(",", s1);
+                        if (s2 != "" && s1 != null)
+                            sw.WriteLine(s2);
                     }
 
                     Debug.Log("Exported : " + path);
@@ -1322,7 +1328,7 @@ public class NoteManager : MonoBehaviour{
             SortAllData();
 
             // スナップ線を設定
-            gameMng.ChangeSnapLine(true);
+            gameMng.ChangeLine(true);
 
             // Settingの読み込み
             if(settingStr.Length == 6)
@@ -1355,7 +1361,7 @@ public class NoteManager : MonoBehaviour{
             SortAllData();
 
             // スナップ線を設定
-            gameMng.ChangeSnapLine(true);
+            gameMng.ChangeLine(true);
 
             // 時間を設定
             UpdateAllNotesTime();
@@ -1366,6 +1372,7 @@ public class NoteManager : MonoBehaviour{
         }
         else
             return false;
+            
 
     }
 
