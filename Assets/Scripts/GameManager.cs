@@ -754,7 +754,6 @@ public class GameManager : MonoBehaviour {
 
         // 現在のノーツ種類のタイプ(0=キーボードノーツ / 1=Exキーボードノーツ / 2=マウスノーツ / 3=エリア移動 / 4=ギミック系)
 
-        // TODO : タップノーツ選択時、Shiftを入力するとHoldが設置できるようにする
         ChartType chartType = GetChartType(noteTypeId);
 
         // クリック位置にRayを飛ばす
@@ -861,15 +860,17 @@ public class GameManager : MonoBehaviour {
                 }
                 if (uiMng.GetSnapXToggle())
                 {
-                    snapObjX = snapPoolX.SartchNearGameObjectX(snapX_prefab, pos.x);
-                    if (snapObjX != null)
+                    if (chartType == ChartType.mouse || chartType == ChartType.areaMove)
                     {
-                        pos.x = snapObjX.transform.position.x;
-                        if (chartType == ChartType.mouse || chartType == ChartType.areaMove)
+                        snapObjX = snapPoolX.SartchNearGameObjectX(snapX_prefab, pos.x);
+                        if (snapObjX != null)
+                        {
+                            pos.x = snapObjX.transform.position.x;
                             notePosX = (pos.x - General.objectAreaPos.x) / (General.windowAreaWidth / 2f);
+                        }
+                        else
+                            return;
                     }
-                    else
-                        return;
                 }
 
 
@@ -952,9 +953,7 @@ public class GameManager : MonoBehaviour {
 
         ChartType chartType = GetChartType(type);
 
-       
-
-        if(obj.tag == "Edge")
+        if(obj.tag == "Edge" || obj.name == "dot")
         {
             type = GetNotesTypeForObjectTag(obj.transform.parent.gameObject);
             notePosX = (obj.transform.parent.position.x - General.objectAreaPos.x) / (General.windowAreaWidth / 2f);
@@ -1007,6 +1006,8 @@ public class GameManager : MonoBehaviour {
 
             // 削除対象ノーツの情報を取得する(Undo用)
             if (type == (int)NotesType.N_Hold || type == (int)NotesType.N_ExHold)
+                posY = obj.transform.parent.localPosition.y;
+            else if (type == (int)NotesType.N_Catch && obj.name == "dot")
                 posY = obj.transform.parent.localPosition.y;
             else
                 posY = obj.transform.localPosition.y;
