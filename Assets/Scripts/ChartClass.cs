@@ -47,6 +47,17 @@ public enum ChartType
     none = 99
 }
 
+public class GuideData
+{
+    public NoteData note = null;
+    public float time = 0f;
+
+    public GuideData(NoteData _note, float _time)
+    {
+        note = _note;
+        time = _time;
+    }
+}
 
 public class ObjectData
 {
@@ -68,12 +79,14 @@ public class ObjectData
 
 public class NoteData : ObjectData
 {
-    
+    public GuideData startGuide = null;
+    public GuideData endGuide = null;
     public float width;             // 左右幅(全体を2とする)
 
     public NoteData(float _bar) : base(_bar)
     {
-
+        startGuide = null;
+        endGuide = null;
     }
 }
 

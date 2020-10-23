@@ -24,6 +24,16 @@ public class UIManager : MonoBehaviour {
     private Button redoButton;
 
     [SerializeField]
+    private Button bgmVolumeButton;
+    [SerializeField]
+    private Button seVolumeButton;
+
+    [SerializeField]
+    private Slider bgmVolumeSlider;
+    [SerializeField]
+    private Slider seVolumeSlider;
+
+    [SerializeField]
     private Button hitButton;
     [SerializeField]
     private Button exHitButton;
@@ -39,8 +49,6 @@ public class UIManager : MonoBehaviour {
     [SerializeField]
     private InputField snapX_split;
 
-    [SerializeField]
-    private TMP_InputField offset;
     [SerializeField]
     private Button openSetting;
     [SerializeField]
@@ -63,6 +71,8 @@ public class UIManager : MonoBehaviour {
     private InputField level_num;
     [SerializeField]
     private InputField charter;
+    [SerializeField]
+    private TMP_InputField offset;
 
     [SerializeField]
     private Camera areaCam;
@@ -80,6 +90,11 @@ public class UIManager : MonoBehaviour {
     private GameObject BpmSetting;
     [SerializeField]
     private GameObject StopSetting;
+
+    [SerializeField]
+    private Text bgmVolHoverText;
+    [SerializeField]
+    private Text seVolHoverText;
 
     [SerializeField]
     private Button stop_up;
@@ -152,21 +167,33 @@ public class UIManager : MonoBehaviour {
         return snap_X.split;
     }
 
-    public float GetOffset()
+    public float GetBgmValue()
     {
-        if (offset.text.IndexOf("-") != -1)
-            return 0.00f;
-        else
-            return Mathf.Max(0f, float.Parse(offset.text));
+        return bgmVolumeSlider.value;
     }
+    public float GetSeValue()
+    {
+        return seVolumeSlider.value;
+    }
+    public bool GetIsBgmMute()
+    {
+        return !bgmVolumeSlider.interactable;
+    }
+    public bool GetIsSeMute()
+    {
+        return !seVolumeSlider.interactable;
+    }
+
     public bool GetAutoScr()
     {
         return autoScr;
     }
+
     public bool GetOpenSetting()
     {
         return isSetting;
     }
+
     public string GetMusicID()
     {
         if (music_id.text != "")
@@ -188,6 +215,13 @@ public class UIManager : MonoBehaviour {
             return charter.text;
         else
             return "-";
+    }
+    public float GetOffset()
+    {
+        if (offset.text.IndexOf("-") != -1)
+            return 0.00f;
+        else
+            return Mathf.Max(0f, float.Parse(offset.text));
     }
 
     #endregion
@@ -242,6 +276,22 @@ public class UIManager : MonoBehaviour {
         else
             stop_down.interactable = false;
 
+    }
+
+    // ボリューム値やミュートの状態を直接設定
+    public void SetBgmVolume(float volume, bool isMute)
+    {
+        bgmVolumeSlider.value = volume;
+        OnChangeBgmVolume();
+        if (GetIsBgmMute() != isMute)
+            MuteBgmButton_down();
+    }
+    public void SetSeVolume(float volume, bool isMute)
+    {
+        seVolumeSlider.value = volume;
+        OnChangeSeVolume();
+        if (GetIsSeMute() != isMute)
+            MuteSeButton_down();
     }
 
     #endregion
@@ -313,7 +363,7 @@ public class UIManager : MonoBehaviour {
     {
         if (offset.text.IndexOf("-") != -1)
             offset.text = "0.00";
-        gameMng.ChangeSnapLine(true);
+        gameMng.ChangeLine(true);
     }
 
     public void SetTotalNotes(int notes)
@@ -333,7 +383,7 @@ public class UIManager : MonoBehaviour {
     {
         snap_Y.toggle = !snap_Y.toggle;
         snapY_split.interactable = !snapY_split.interactable;
-        gameMng.SnapY_toggle(snap_Y.toggle);
+        gameMng.ChangeSnapLineY();
         SetStopUpDownButtonActive();
     }
 
@@ -461,6 +511,102 @@ public class UIManager : MonoBehaviour {
     public void UpdateRedoButtonEnable(bool isEnable)
     {
         redoButton.interactable = isEnable;
+    }
+
+    #endregion
+
+
+    #region [BGM / SE]
+
+
+    public void OnChangeBgmVolume()
+    {
+        gameMng.SetBgmVolume(bgmVolumeSlider.value);
+
+        for (int i = 0; i < 4; i++)
+            bgmVolumeButton.transform.GetChild(i).gameObject.SetActive(false);
+
+        if (bgmVolumeSlider.value > 0.7f)
+            bgmVolumeButton.transform.GetChild(3).gameObject.SetActive(true);
+        else if (bgmVolumeSlider.value > 0.3f)
+            bgmVolumeButton.transform.GetChild(2).gameObject.SetActive(true);
+        else if (bgmVolumeSlider.value > 0f)
+            bgmVolumeButton.transform.GetChild(1).gameObject.SetActive(true);
+        else
+            bgmVolumeButton.transform.GetChild(0).gameObject.SetActive(true);
+
+        bgmVolHoverText.text = string.Format("BGM : {0}%", (int)(bgmVolumeSlider.value * 100f));
+    }
+
+    public void OnChangeSeVolume()
+    {
+        gameMng.SetSeVolume(seVolumeSlider.value);
+
+        for (int i = 0; i < 4; i++)
+            seVolumeButton.transform.GetChild(i).gameObject.SetActive(false);
+
+        if (seVolumeSlider.value > 0.7f)
+            seVolumeButton.transform.GetChild(3).gameObject.SetActive(true);
+        else if (seVolumeSlider.value > 0.3f)
+            seVolumeButton.transform.GetChild(2).gameObject.SetActive(true);
+        else if (seVolumeSlider.value > 0f)
+            seVolumeButton.transform.GetChild(1).gameObject.SetActive(true);
+        else
+            seVolumeButton.transform.GetChild(0).gameObject.SetActive(true);
+
+        seVolHoverText.text = string.Format("SE : {0}%", (int)(seVolumeSlider.value * 100f));
+    }
+
+    public void MuteBgmButton_down()
+    {
+        // ミュートを反転
+        bgmVolumeSlider.interactable = !bgmVolumeSlider.interactable;
+
+        bool isMute = GetIsBgmMute();
+
+        for (int i = 0; i < 4; i++)
+            bgmVolumeButton.transform.GetChild(i).gameObject.SetActive(false);
+
+        if (isMute)
+        {
+            bgmVolumeSlider.transform.GetChild(1).gameObject.SetActive(false);
+            bgmVolumeButton.transform.GetChild(0).gameObject.SetActive(true);
+            bgmVolHoverText.text = "BGM : ミュート中";
+        }
+        else
+        {
+            bgmVolumeSlider.transform.GetChild(1).gameObject.SetActive(true);
+            OnChangeBgmVolume();
+        }
+
+
+        gameMng.SetBgmMute(isMute);
+    }
+
+    public void MuteSeButton_down()
+    {
+        // ミュートを反転
+        seVolumeSlider.interactable = !seVolumeSlider.interactable;
+
+        bool isMute = GetIsSeMute();
+
+        for (int i = 0; i < 4; i++)
+            seVolumeButton.transform.GetChild(i).gameObject.SetActive(false);
+
+        if (isMute)
+        {
+            seVolumeSlider.transform.GetChild(1).gameObject.SetActive(false);
+            seVolumeButton.transform.GetChild(0).gameObject.SetActive(true);
+            seVolHoverText.text = "SE : ミュート中";
+        }
+        else
+        {
+            seVolumeSlider.transform.GetChild(1).gameObject.SetActive(true);
+            OnChangeSeVolume();
+        }
+
+
+        gameMng.SetSeMute(isMute);
     }
 
     #endregion

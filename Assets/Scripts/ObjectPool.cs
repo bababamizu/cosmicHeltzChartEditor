@@ -6,6 +6,9 @@ public class ObjectPool : MonoBehaviour {
 
     // ゲームオブジェクトのDictionary
     private Dictionary<int, List<GameObject>> pooledGameObjects = new Dictionary<int, List<GameObject>>();
+    
+    // LineのDictionary
+    private Dictionary<int, Line> pooledLine = new Dictionary<int, Line>();
 
     // ゲームオブジェクトをpooledGameObjectsから取得する。必要であれば新たに生成する
     public GameObject GetGameObject(GameObject prefab, Vector3 position, Quaternion rotation)
@@ -16,7 +19,6 @@ public class ObjectPool : MonoBehaviour {
         // Dictionaryにkeyが存在しなければ作成する
         if (pooledGameObjects.ContainsKey(key) == false)
         {
-
             pooledGameObjects.Add(key, new List<GameObject>());
         }
 
@@ -189,5 +191,72 @@ public class ObjectPool : MonoBehaviour {
         }
 
         return mostNearGO;
+    }
+
+
+    // GetGameObjectを行い、新規に生成したものであればLineコンポーネントを格納する
+    public GameObject GetGameObject_Line(GameObject prefab, Vector3 position, Quaternion rotation)
+    {
+        // プレハブのインスタンスIDをkeyとする
+        int key = prefab.GetInstanceID();
+
+        // Dictionaryにkeyが存在しなければ作成する
+        if (pooledGameObjects.ContainsKey(key) == false)
+        {
+            pooledGameObjects.Add(key, new List<GameObject>());
+        }
+
+        List<GameObject> gameObjects = pooledGameObjects[key];
+
+        GameObject go = null;
+
+        for (int i = 0; i < gameObjects.Count; i++)
+        {
+
+            go = gameObjects[i];
+
+            // 現在非アクティブ（未使用）であれば
+            if (go.activeSelf == false)
+            {
+
+                // 位置を設定する
+                go.transform.localPosition = position;
+
+                // 角度を設定する
+                go.transform.localRotation = rotation;
+
+                // これから使用するのでアクティブにする
+                go.SetActive(true);
+
+                return go;
+            }
+        }
+
+        // 使用できるものがないので新たに生成する
+        go = Instantiate(prefab, position, rotation) as GameObject;
+
+        // ObjectPoolがアタッチされているGameObjectの子要素にする
+        go.transform.SetParent(gameObject.transform, false);
+
+        // リストに追加
+        gameObjects.Add(go);
+
+        // Lineオブジェクトを取得して格納
+        Line line = go.GetComponent<Line>();
+        if (line != null)
+            pooledLine.Add(go.transform.GetSiblingIndex(), line);
+
+        return go;
+    }
+
+
+    public Line GetLine(GameObject obj)
+    {
+        int key = obj.transform.GetSiblingIndex();
+
+        if (pooledLine.ContainsKey(key))
+            return pooledLine[key];
+        else
+            return null;
     }
 }

@@ -36,7 +36,7 @@ public class LineManager : MonoBehaviour {
     private SortingGroup areaMoveObjSort;
 
     [SerializeField]
-    private Light light;
+    private Light notesLight;
 
     public void SnapY_toggle(bool isSnap)
     {
@@ -51,35 +51,33 @@ public class LineManager : MonoBehaviour {
     {
         // 小節線リストを全消去
         noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10].Clear();
+        // BPM変化リストを全消去
+        noteMng.objDatas[(int)OtherObjectsType.B_Bpm - 10].Clear();
+        // 譜面停止リストを全消去
+        noteMng.objDatas[(int)OtherObjectsType.B_Stop - 10].Clear();
+        // レーン位置変化リストを全消去
+        noteMng.objDatas[(int)OtherObjectsType.B_AreaMove - 10].Clear();
+
         // 最初の小節線データを追加 (4/4拍子)
         ObjectData firstMeasure = new ObjectData(0f);
         firstMeasure.length_bar = 1f;
         firstMeasure.data = 4;
         noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10].Add(firstMeasure);
 
-        // BPM変化リストを全消去
-        noteMng.objDatas[(int)OtherObjectsType.B_Bpm - 10].Clear();
         // 最初のBPMデータを追加
         noteMng.AddNoteFromBar(0f, (int)OtherObjectsType.B_Bpm, 0f, 0f, 128f, false);
 
-        // 譜面停止リストを全消去
-        noteMng.objDatas[(int)OtherObjectsType.B_Stop - 10].Clear();
-
-        // レーン位置変化リストを全消去
-        noteMng.objDatas[(int)OtherObjectsType.B_AreaMove - 10].Clear();
         // 最初のレーン位置変化データを追加
         noteMng.AddNoteFromBar(0f, (int)OtherObjectsType.B_AreaMove, 0f, 0f, 0f, false);
+
     }
 
     /// <summary>
-    /// スナップ線と小節線を設定する
+    /// 小節線を設定する
     /// </summary>
-    public void SetLine(float length, int split, bool toggle)
+    public void SetLine(float length)
     {
-        snapYPool.gameObject.SetActive(true);
-
         linePool.ReleaseAllGameObjects(linePrefab);
-        snapYPool.ReleaseAllGameObjects(snapY_prefab);
 
         Vector3 position;
         float bar_tmp;
@@ -103,6 +101,7 @@ public class LineManager : MonoBehaviour {
         int listPtr = 0;
 
         float maxBar = GetNoteBarFromMusicTime(length) - bar_offset;
+        Line line;
 
         while (bar_tmp <= maxBar)
         {
@@ -130,8 +129,10 @@ public class LineManager : MonoBehaviour {
 
             position = new Vector3(0f, GetNotePosFromNoteBar(bar_tmp, gameMng.camExpansionRate), 0f);
 
-            GameObject obj = linePool.GetGameObject(linePrefab, position, Quaternion.identity);
-            obj.GetComponent<Line>().SetUp(barCnt, bar_tmp, isChanged, measure_n, measure_d);
+            GameObject obj = linePool.GetGameObject_Line(linePrefab, position, Quaternion.identity);
+            line = linePool.GetLine(obj);
+            if(line != null)
+                line.SetUp(barCnt, bar_tmp, isChanged, measure_n, measure_d);
             noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10][listPtr].obj = obj;
 
             bar_tmp += measure;
@@ -151,28 +152,52 @@ public class LineManager : MonoBehaviour {
 
         endLine.transform.localPosition = new Vector3(0f, GetNotePosFromNoteBar(maxBar, gameMng.camExpansionRate), 0f);
 
-        measure = noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10][0].length_bar;
+    }
+
+    /// <summary>
+    /// スナップ線と小節線を設定する
+    /// </summary>
+    public void SetSnapLine(float length, int split, bool toggle)
+    {
+        snapYPool.gameObject.SetActive(true);
+
+        snapYPool.ReleaseAllGameObjects(snapY_prefab);
+
+        if (!toggle)
+        {
+            snapYPool.gameObject.SetActive(false);
+            return;
+        }
+            
+
+        Vector3 position;
+        float bar_tmp;
+        float bar_offset;
+
+        bar_offset = GetBarOffset();
+
+        float maxBar = GetNoteBarFromMusicTime(length) - bar_offset;
+
+        float measure = noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10][0].length_bar;
         float nextBar = measure;
         bar_tmp = 0f;
-        barCnt = 1;
-        listPtr = Mathf.Min(noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10].Count - 1, 1);
+        int barCnt = 1;
+        int listPtr = Mathf.Min(noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10].Count - 1, 1);
         int cnt = 0;
 
         GameObject snapObj;
         LineRenderer lineRenderer;
 
-        while (bar_tmp <= maxBar) {
-
+        while (bar_tmp <= maxBar)
+        {
             // 引いたグリッド線が1小節分に達した場合：次小節に移動
             if (cnt >= split * measure)
             {
-
                 bar_tmp = nextBar;
                 cnt = 0;
                 barCnt++;
-                
-                if (noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10][listPtr].bar == bar_tmp)
-                    measure = noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10][listPtr].length_bar;
+
+                measure = noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10][listPtr].length_bar;
 
                 if (listPtr + 1 < noteMng.objDatas[(int)OtherObjectsType.B_Bar - 10].Count)
                     listPtr++;
@@ -209,11 +234,9 @@ public class LineManager : MonoBehaviour {
             bar_tmp += 1f / split;
 
             cnt++;
-                
+
         }
 
-        if(!toggle)
-            snapYPool.gameObject.SetActive(false);
     }
 
     public void SetVerticalLine(float length)
@@ -263,23 +286,23 @@ public class LineManager : MonoBehaviour {
         {
             case ChartType.keybord:
                 areaMoveObjSort.sortingOrder = -2;
-                light.cullingMask = LayerMask.GetMask(new string[] { "keyBordNotes", "keyBordLanes" });
+                notesLight.cullingMask = LayerMask.GetMask(new string[] { "keyBordNotes", "keyBordLanes" });
                 break;
             case ChartType.exKeybord:
                 areaMoveObjSort.sortingOrder = -2;
-                light.cullingMask = LayerMask.GetMask(new string[] { "exKeyBordNotes", "keyBordLanes" });
+                notesLight.cullingMask = LayerMask.GetMask(new string[] { "exKeyBordNotes", "keyBordLanes" });
                 break;
             case ChartType.mouse:
                 areaMoveObjSort.sortingOrder = -2;
-                light.cullingMask = LayerMask.GetMask(new string[] { "mouseNotes" });
+                notesLight.cullingMask = LayerMask.GetMask(new string[] { "mouseNotes" });
                 break;
             case ChartType.areaMove:
                 areaMoveObjSort.sortingOrder = 3;
-                light.cullingMask = LayerMask.GetMask(new string[] { "areaMoveObjects" });
+                notesLight.cullingMask = LayerMask.GetMask(new string[] { "areaMoveObjects" });
                 break;
             case ChartType.gimmick:
                 areaMoveObjSort.sortingOrder = -2;
-                light.cullingMask = LayerMask.GetMask(new string[] { "gimmickObjects" });
+                notesLight.cullingMask = LayerMask.GetMask(new string[] { "gimmickObjects" });
                 break;
         }
     }
