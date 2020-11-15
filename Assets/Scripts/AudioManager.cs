@@ -1,4 +1,5 @@
 ﻿using chChartEditor;
+using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -6,7 +7,8 @@ using UnityEngine.UI;
 using UnityEngine.Networking;
 using UnityEngine.Video;
 using SFB;
-using System.IO;
+using SimpleFileBrowser;
+
 
 public class AudioManager : MonoBehaviour
 {
@@ -41,11 +43,14 @@ public class AudioManager : MonoBehaviour
 
     private bool isLoading = false;
 
+    Coroutine coroutine = null;
+
     private string initDirectory;
 
     private void Start()
     {
         initDirectory = PlayerPrefs.GetString("chartEditor.audioDirectory", string.Empty);
+        FileBrowser.AddQuickLink(Path.GetFileName(initDirectory), initDirectory, null);
         musicLength = 0f;
         videoLength = 0f;
     }
@@ -167,45 +172,52 @@ public class AudioManager : MonoBehaviour
 
     public void OpenExistFile()
     {
-        var extension = new[] {
-            new ExtensionFilter("音声ファイル", "ogg", "wav"),
-            new ExtensionFilter("画像ファイル", "png"),
-        };
+        if (coroutine == null)
+            coroutine = StartCoroutine(OpenLoadDialog());
+    }
 
+    private IEnumerator OpenLoadDialog()
+    {
+        FileBrowser.SetFilters(
+            true, 
+            new FileBrowser.Filter("音声ファイル", ".ogg", ".wav"),
+            new FileBrowser.Filter("画像ファイル", ".png", ".jpg")
+        );
+        FileBrowser.SetDefaultFilter(".ogg");
 
-        /*
-        var extension = new[] {
-            new ExtensionFilter("音声ファイル", "ogg", "wav"),
-            new ExtensionFilter("動画ファイル", "mp4"),
-            new ExtensionFilter("画像ファイル", "png"),
-        };
-        */
+        yield return FileBrowser.WaitForLoadDialog(
+            false,
+            false,
+            initDirectory,
+            string.Empty,
+            "ファイルを開く",
+            "開く"
+        );
 
-        var paths = StandaloneFileBrowser.OpenFilePanel("Open File", initDirectory, extension, false);
-
-        if (paths.Length != 0)
+        if (FileBrowser.Success)
         {
-            initDirectory = Path.GetDirectoryName(paths[0]);
+            initDirectory = Path.GetDirectoryName(FileBrowser.Result[0]);
 
-            string fileExtension = paths[0].Substring(paths[0].Length - 3, 3);
+            string fileExtension = Path.GetExtension(FileBrowser.Result[0]);
 
             switch (fileExtension)
             {
-                case "ogg":
-                case "wav":
-                    StartCoroutine("StreamAudioFile", paths[0]);
+                case ".ogg":
+                case ".wav":
+                    StartCoroutine("StreamAudioFile", FileBrowser.Result[0]);
                     break;
-                case "mp4":
-                    StartCoroutine("StreamVideoFile", paths[0]);
+                case ".mp4":
+                    StartCoroutine("StreamVideoFile", FileBrowser.Result[0]);
                     break;
-                case "png":
-                    StartCoroutine("StreamImageFile", paths[0]);
+                case ".png":
+                case ".jpg":
+                    StartCoroutine("StreamImageFile", FileBrowser.Result[0]);
                     break;
             }
-            
         }
-
+        coroutine = null;
     }
+
 
     IEnumerator StreamAudioFile(string filePath)
     {

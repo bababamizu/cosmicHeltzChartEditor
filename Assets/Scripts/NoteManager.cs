@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using SFB;
+using SimpleFileBrowser;
 
 public class NoteManager : MonoBehaviour{
 
@@ -46,7 +47,9 @@ public class NoteManager : MonoBehaviour{
 
     public Array notesTypeArray = Enum.GetValues(typeof(NotesType));
     public Array otherObjTypeArray = Enum.GetValues(typeof(OtherObjectsType));
-    
+
+    Coroutine coroutine = null;
+
     void Start()
     {
         foreach (NotesType notesType in notesTypeArray)
@@ -55,6 +58,8 @@ public class NoteManager : MonoBehaviour{
             objDatas.Add(new List<ObjectData>());
 
         initDirectory = PlayerPrefs.GetString("cH.editor.chartDirectory", string.Empty);
+
+        FileBrowser.AddQuickLink(Path.GetFileName(initDirectory), initDirectory, null);
     }
 
     private void OnApplicationQuit()
@@ -1133,17 +1138,15 @@ public class NoteManager : MonoBehaviour{
 
     public bool Export(string music_id, int diff, int level, string charter, bool isExportAs)
     {
-        string path = initDirectory + string.Format(@"\{0}[{1}].csv", music_id, diff);
-        if (!File.Exists(path) || isExportAs)
+        string filePath = initDirectory + string.Format(@"\{0}[{1}].csv", music_id, diff);
+        if (!File.Exists(filePath) || isExportAs)
         {
-            var extension = new[] {
-                new ExtensionFilter("Chart File", "csv")
-            };
-            path = StandaloneFileBrowser.SaveFilePanel("Save File", initDirectory, string.Format("{0}[{1}].csv", music_id, diff), extension);
-            
+            if(coroutine == null)
+                coroutine = StartCoroutine(OpenExportDialog(music_id, diff, level, charter));
+            return false;
         }
-
-        return ExportChart(path, music_id, diff, level, charter);
+        else
+            return ExportChart(filePath, music_id, diff, level, charter);
     }
 
     private bool ExportChart(string path, string music_id, int diff, int level, string charter)
@@ -1226,16 +1229,15 @@ public class NoteManager : MonoBehaviour{
             return false;
     }
 
-
-    public bool Import()
+    public void Import()
     {
-        var extension = new[] {
-            new ExtensionFilter("Chart File", "csv")
-        };
+        if (coroutine == null)
+            coroutine = StartCoroutine(OpenImportDialog());
+    }
 
-        var paths = StandaloneFileBrowser.OpenFilePanel("Open File", initDirectory, extension, false);
-
-        if (paths.Length != 0) {
+    public bool ImportChart(string filePath)
+    {
+        if (File.Exists(filePath)) {
 
             DeleteAllObjects();
 
@@ -1261,13 +1263,13 @@ public class NoteManager : MonoBehaviour{
             // 譜面データを読み込み、分割する
             try
             {
-                using (fs = new FileStream(paths[0], FileMode.Open))
+                using (fs = new FileStream(filePath, FileMode.Open))
                 {
                     try
                     {
                         using (StreamReader reader = new StreamReader(fs))
                         {
-                            initDirectory = Path.GetDirectoryName(paths[0]);
+                            initDirectory = Path.GetDirectoryName(filePath);
 
                             strStream = reader.ReadToEnd();
                             // 行に分ける
@@ -1304,7 +1306,7 @@ public class NoteManager : MonoBehaviour{
                 if (dataCnt == 0)
                 {
                     if (line.Length != 6)
-                        throw new Exception(Path.GetFileName(paths[0]) + " - ヘッダ部の書式が異なります");
+                        throw new Exception(Path.GetFileName(filePath) + " - ヘッダ部の書式が異なります");
 
                     settingStr = line;
                     continue;
@@ -1366,7 +1368,7 @@ public class NoteManager : MonoBehaviour{
             // 時間を設定
             UpdateAllNotesTime();
 
-            Debug.Log("Imported : " + paths[0]);
+            Debug.Log("Imported : " + filePath[0]);
 
             return true;
         }
@@ -1375,6 +1377,55 @@ public class NoteManager : MonoBehaviour{
             
 
     }
+
+
+    private IEnumerator OpenExportDialog(string music_id, int diff, int level, string charter)
+    {
+        FileBrowser.SetFilters(true, new FileBrowser.Filter("譜面ファイル", ".csv"));
+        FileBrowser.SetDefaultFilter(".csv");
+        yield return FileBrowser.WaitForSaveDialog(
+            false,
+            false,
+            initDirectory,
+            string.Format("{0}[{1}].csv", music_id, diff),
+            "譜面を保存",
+            "保存"
+        );
+
+        if (FileBrowser.Success)
+        {
+            bool isSuccessed = ExportChart(FileBrowser.Result[0], music_id, diff, level, charter);
+            if(isSuccessed)
+                gameMng.SetEdited(false);
+        }
+        coroutine = null;
+    }
+
+    private IEnumerator OpenImportDialog()
+    {
+        FileBrowser.SetFilters(true, new FileBrowser.Filter("譜面ファイル", ".csv"));
+        FileBrowser.SetDefaultFilter(".csv");
+        yield return FileBrowser.WaitForLoadDialog(
+            false,
+            false,
+            initDirectory,
+            string.Empty,
+            "譜面を開く",
+            "開く"
+        );
+
+        if (FileBrowser.Success)
+        {
+            bool isSuccessed = ImportChart(FileBrowser.Result[0]);
+            if (isSuccessed)
+            {
+                gameMng.SetEdited(false);
+                gameMng.UpdateNotesCount();
+            }
+        }
+        coroutine = null;
+    }
+
 
     /// <summary>
     /// ExportDataを出現順→ノーツ種別順→位置順にソートする関数
@@ -1408,8 +1459,6 @@ public class NoteManager : MonoBehaviour{
     }
 
     #endregion
-
-
 
 
 

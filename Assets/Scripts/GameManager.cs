@@ -34,7 +34,6 @@ public class GameManager : MonoBehaviour {
     [SerializeField]
     private RectTransform canvasRect;
 
-
     [SerializeField]
     private Camera areaCam;
     [SerializeField]
@@ -653,6 +652,8 @@ public class GameManager : MonoBehaviour {
         lineMng.SetLightMask(GetChartType(noteTypeId));
     }
 
+
+
     #endregion
 
 
@@ -700,11 +701,7 @@ public class GameManager : MonoBehaviour {
 
     public void Import()
     {
-        if (noteMng.Import())
-        {
-            SetEdited(false);
-            UpdateNotesCount();
-        }
+        noteMng.Import();
             
     }
 
@@ -733,7 +730,7 @@ public class GameManager : MonoBehaviour {
 
         if (isSetLine && edited) {
             // TODO : 終了時に保存するか確認するダイアログを出す (現在はExportを開くだけ)
-            Export(true, true);
+            // Export(true, true);
             return true;
         }
 

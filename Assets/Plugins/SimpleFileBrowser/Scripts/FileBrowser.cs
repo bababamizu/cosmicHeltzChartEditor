@@ -7,6 +7,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
+/* [Modified : ]というメモ書きのある個所は配布状態から改変した箇所
+ * Unity側での改変点
+ * ・ウィンドウサイズ、各種オブジェクトサイズの変更
+ * ・各種文字の日本語化、フォント変更
+ * ・最背面に全画面の半透明パネルを追加(ダイアログ起動中のツール操作を防ぐため)
+ * ・右上に[閉じる]ボタンを追加(動作は[キャンセル]ボタンと同一)
+ */
 namespace SimpleFileBrowser
 {
 	public class FileBrowser : MonoBehaviour, IListViewAdapter
@@ -99,8 +106,11 @@ namespace SimpleFileBrowser
 		#endregion
 
 		#region Constants
-		private const string ALL_FILES_FILTER_TEXT = "All Files (.*)";
-		private const string FOLDERS_FILTER_TEXT = "Folders";
+		// Modified : 初期設定フィルタ(すべてのファイル/フォルダ)の表示を日本語化
+		private const string ALL_FILES_FILTER_TEXT = "すべてのファイル (.*)";
+		private const string FOLDERS_FILTER_TEXT = "フォルダ";
+		// private const string ALL_FILES_FILTER_TEXT = "All Files (.*)";
+		// private const string FOLDERS_FILTER_TEXT = "Folders";
 		private string DEFAULT_PATH;
 
 #if !UNITY_EDITOR && UNITY_ANDROID
@@ -362,7 +372,6 @@ namespace SimpleFileBrowser
 				{
 					m_searchString = value;
 					searchInputField.text = m_searchString;
-
 					RefreshFiles( false );
 				}
 			}
@@ -406,6 +415,14 @@ namespace SimpleFileBrowser
 						placeholder.text = m_folderSelectMode ? "" : "Filename";
 				}
 			}
+		}
+
+		// Modified : ファイル上書き時に警告ウィンドウを表示するか否か
+		private bool m_displayOverwriteSaveCaution;
+		internal bool DisplayOverwriteSaveCaution
+		{
+			get { return m_displayOverwriteSaveCaution; }
+			private set { m_displayOverwriteSaveCaution = value; }
 		}
 
 		private bool m_allowMultiSelection;
@@ -544,10 +561,12 @@ namespace SimpleFileBrowser
 
 		private void OnApplicationFocus( bool focus )
 		{
-			if( !focus )
+			
+			if (!focus )
 				PersistFileEntrySelection();
 			else
-				RefreshFiles( true );
+				RefreshFiles(true);
+				
 		}
 		#endregion
 
@@ -1181,7 +1200,8 @@ namespace SimpleFileBrowser
 		#endregion
 
 		#region Helper Functions
-		public void Show( string initialPath )
+		// Modified : 初期ファイル名を指定できるように(引数追加 : initialFileName)
+		public void Show(string initialPath, string initialFileName = null )
 		{
 			if( AskPermissions )
 				RequestPermission();
@@ -1200,7 +1220,9 @@ namespace SimpleFileBrowser
 
 			filesScrollRect.verticalNormalizedPosition = 1;
 
-			filenameInputField.text = string.Empty;
+			// Modified : ファイル名を入力するImputFieldに初期ファイル名を入力する
+			filenameInputField.text = initialFileName;
+
 			filenameImage.color = Color.white;
 
 			IsOpen = true;
@@ -1511,9 +1533,10 @@ namespace SimpleFileBrowser
 		#endregion
 
 		#region File Browser Functions (static)
+		// Modified : 初期ファイル名を指定できるように(引数追加 : initialFileName)
 		public static bool ShowSaveDialog( OnSuccess onSuccess, OnCancel onCancel,
 										   bool folderMode = false, bool allowMultiSelection = false, string initialPath = null,
-										   string title = "Save", string saveButtonText = "Save" )
+										   string initialFileName = null, string title = "Save", string saveButtonText = "Save" )
 		{
 			if( Instance.gameObject.activeSelf )
 			{
@@ -1530,14 +1553,15 @@ namespace SimpleFileBrowser
 			Instance.SubmitButtonText = saveButtonText;
 			Instance.AcceptNonExistingFilename = !folderMode;
 
-			Instance.Show( initialPath );
+			Instance.Show( initialPath, initialFileName);
 
 			return true;
 		}
 
+		// Modified : 初期ファイル名を指定できるように(引数追加 : initialFileName)
 		public static bool ShowLoadDialog( OnSuccess onSuccess, OnCancel onCancel,
 										   bool folderMode = false, bool allowMultiSelection = false, string initialPath = null,
-										   string title = "Load", string loadButtonText = "Select" )
+										   string initialFileName = null, string title = "Load", string loadButtonText = "Select" )
 		{
 			if( Instance.gameObject.activeSelf )
 			{
@@ -1554,7 +1578,7 @@ namespace SimpleFileBrowser
 			Instance.SubmitButtonText = loadButtonText;
 			Instance.AcceptNonExistingFilename = false;
 
-			Instance.Show( initialPath );
+			Instance.Show( initialPath, initialFileName);
 
 			return true;
 		}
@@ -1565,9 +1589,9 @@ namespace SimpleFileBrowser
 		}
 
 		public static IEnumerator WaitForSaveDialog( bool folderMode = false, bool allowMultiSelection = false, string initialPath = null,
-													 string title = "Save", string saveButtonText = "Save" )
+													 string initialFileName = null, string title = "Save", string saveButtonText = "Save" )
 		{
-			if( !ShowSaveDialog( null, null, folderMode, allowMultiSelection, initialPath, title, saveButtonText ) )
+			if( !ShowSaveDialog( null, null, folderMode, allowMultiSelection, initialPath, initialFileName, title, saveButtonText ) )
 				yield break;
 
 			while( Instance.gameObject.activeSelf )
@@ -1575,9 +1599,9 @@ namespace SimpleFileBrowser
 		}
 
 		public static IEnumerator WaitForLoadDialog( bool folderMode = false, bool allowMultiSelection = false, string initialPath = null,
-													 string title = "Load", string loadButtonText = "Select" )
+													 string initialFileName = null, string title = "Load", string loadButtonText = "Select" )
 		{
-			if( !ShowLoadDialog( null, null, folderMode, allowMultiSelection, initialPath, title, loadButtonText ) )
+			if( !ShowLoadDialog( null, null, folderMode, allowMultiSelection, initialPath, initialFileName, title, loadButtonText ) )
 				yield break;
 
 			while( Instance.gameObject.activeSelf )
