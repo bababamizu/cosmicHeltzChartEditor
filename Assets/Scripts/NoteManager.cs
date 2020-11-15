@@ -6,7 +6,6 @@ using UnityEngine;
 using System.Linq;
 using System.Text;
 using System.IO;
-using SFB;
 using SimpleFileBrowser;
 
 public class NoteManager : MonoBehaviour{
