@@ -176,6 +176,10 @@ namespace SimpleFileBrowser
 		[SerializeField]
 		private QuickLink[] quickLinks;
 		private static bool quickLinksInitialized;
+
+		// Modified : カスタムクイックリンクリストの追加
+		private List<FileBrowserQuickLink> customQuickLinks = new List<FileBrowserQuickLink>();
+
 #pragma warning restore 0414
 
 		private readonly HashSet<string> excludedExtensionsSet = new HashSet<string>();
@@ -717,6 +721,7 @@ namespace SimpleFileBrowser
 			}
 
 			quickLinks = null;
+			customQuickLinks.Clear();
 #endif
 #if !UNITY_EDITOR && UNITY_ANDROID
 			}
@@ -1370,7 +1375,38 @@ namespace SimpleFileBrowser
 
 			addedQuickLinksSet.Add( path );
 
+			// Modified : クイックリンクリストに追加
+			customQuickLinks.Add(quickLink);
+
 			return true;
+		}
+
+		// Modified : クイックリンクを削除するメソッドの追加
+		private bool DeleteQuickLink(string path)
+		{
+			if (string.IsNullOrEmpty(path))
+				return false;
+
+			bool isDeleted = false;
+			// クイックリンクリストを順に参照
+			int deletedNum = -1;
+			for (int i = 0; i < customQuickLinks.Count; i++)
+			{
+				if (!isDeleted && customQuickLinks[i].TargetPath == path)
+				{
+					Destroy(customQuickLinks[i].gameObject);
+					addedQuickLinksSet.Remove(path);
+					deletedNum = i;
+					isDeleted = true;
+				}
+				else if (isDeleted)
+					customQuickLinks[i].TransformComponent.anchoredPosition += new Vector2(0f, ItemHeight);
+			}
+
+			if (isDeleted)
+				customQuickLinks.RemoveAt(deletedNum);
+
+			return isDeleted;
 		}
 
 		public void EnsureWindowIsWithinBounds()
@@ -1635,6 +1671,18 @@ namespace SimpleFileBrowser
 			}
 
 			return false;
+		}
+
+		// Modified : クイックリンクを削除可能に
+		public static bool DeleteQuickLinkPath(string path)
+		{
+			if (Instance.DeleteQuickLink(path))
+			{
+				Instance.quickLinksContainer.sizeDelta -= new Vector2(0f, Instance.ItemHeight);
+				return true;
+			}
+			else
+				return false;
 		}
 
 		public static void SetExcludedExtensions( params string[] excludedExtensions )

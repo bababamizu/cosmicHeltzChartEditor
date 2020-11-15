@@ -1158,8 +1158,6 @@ public class NoteManager : MonoBehaviour{
             {
                 try
                 {
-                    initDirectory = Path.GetDirectoryName(path);
-
                     // ヘッダー出力 (ID, 難易度, レベル, 譜面製作者, 開始前BPM, オフセット)
                     string[] s1 = {
                         music_id,
@@ -1268,8 +1266,6 @@ public class NoteManager : MonoBehaviour{
                     {
                         using (StreamReader reader = new StreamReader(fs))
                         {
-                            initDirectory = Path.GetDirectoryName(filePath);
-
                             strStream = reader.ReadToEnd();
                             // 行に分ける
                             string[] lines = strStream.Split('\n');
@@ -1367,7 +1363,7 @@ public class NoteManager : MonoBehaviour{
             // 時間を設定
             UpdateAllNotesTime();
 
-            Debug.Log("Imported : " + filePath[0]);
+            Debug.Log("Imported : " + filePath);
 
             return true;
         }
@@ -1393,9 +1389,17 @@ public class NoteManager : MonoBehaviour{
 
         if (FileBrowser.Success)
         {
-            bool isSuccessed = ExportChart(FileBrowser.Result[0], music_id, diff, level, charter);
-            if(isSuccessed)
+            bool isSucceeded = ExportChart(FileBrowser.Result[0], music_id, diff, level, charter);
+            if(isSucceeded)
                 gameMng.SetEdited(false);
+
+            string directory = Path.GetDirectoryName(FileBrowser.Result[0]);
+            if (initDirectory != directory)
+            {
+                FileBrowser.DeleteQuickLinkPath(initDirectory);
+                FileBrowser.AddQuickLink(Path.GetFileName(directory), directory, null);
+                initDirectory = directory;
+            }
         }
         coroutine = null;
     }
@@ -1415,11 +1419,19 @@ public class NoteManager : MonoBehaviour{
 
         if (FileBrowser.Success)
         {
-            bool isSuccessed = ImportChart(FileBrowser.Result[0]);
-            if (isSuccessed)
+            bool isSucceeded = ImportChart(FileBrowser.Result[0]);
+            if (isSucceeded)
             {
                 gameMng.SetEdited(false);
                 gameMng.UpdateNotesCount();
+            }
+
+            string directory = Path.GetDirectoryName(FileBrowser.Result[0]);
+            if (initDirectory != directory)
+            {
+                FileBrowser.DeleteQuickLinkPath(initDirectory);
+                FileBrowser.AddQuickLink(Path.GetFileName(directory), directory, null);
+                initDirectory = directory;
             }
         }
         coroutine = null;
