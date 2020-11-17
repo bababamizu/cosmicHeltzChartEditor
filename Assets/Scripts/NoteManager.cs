@@ -33,7 +33,7 @@ public class NoteManager : MonoBehaviour{
     private GameObject[] objectPrefab = new GameObject[9];
 
     private string initDirectory;
-    private string exportFilePath;
+    private string exportFileName = null;
 
     [System.NonSerialized]
     public List<List<NoteData>> notesDatas = new List<List<NoteData>>();
@@ -1137,15 +1137,16 @@ public class NoteManager : MonoBehaviour{
 
     public bool Export(string music_id, int diff, int level, string charter, bool isExportAs)
     {
-        string filePath = initDirectory + string.Format(@"\{0}[{1}].csv", music_id, diff);
-        if (!File.Exists(filePath) || isExportAs)
+        string newFileName = string.Format(@"\{0}[{1}].csv", music_id, diff);
+        
+        if (newFileName != exportFileName || isExportAs)
         {
             if(coroutine == null)
                 coroutine = StartCoroutine(OpenExportDialog(music_id, diff, level, charter));
             return false;
         }
         else
-            return ExportChart(filePath, music_id, diff, level, charter);
+            return ExportChart(initDirectory + exportFileName, music_id, diff, level, charter);
     }
 
     private bool ExportChart(string path, string music_id, int diff, int level, string charter)
@@ -1390,8 +1391,11 @@ public class NoteManager : MonoBehaviour{
         if (FileBrowser.Success)
         {
             bool isSucceeded = ExportChart(FileBrowser.Result[0], music_id, diff, level, charter);
-            if(isSucceeded)
+            if (isSucceeded)
+            {
                 gameMng.SetEdited(false);
+                exportFileName = @"\" + Path.GetFileName(FileBrowser.Result[0]);
+            }
 
             string directory = Path.GetDirectoryName(FileBrowser.Result[0]);
             if (initDirectory != directory)
@@ -1424,6 +1428,7 @@ public class NoteManager : MonoBehaviour{
             {
                 gameMng.SetEdited(false);
                 gameMng.UpdateNotesCount();
+                exportFileName = @"\" + Path.GetFileName(FileBrowser.Result[0]);
             }
 
             string directory = Path.GetDirectoryName(FileBrowser.Result[0]);
@@ -1435,6 +1440,12 @@ public class NoteManager : MonoBehaviour{
             }
         }
         coroutine = null;
+    }
+
+
+    public void SetExportFileName(string fileName)
+    {
+        exportFileName = fileName;
     }
 
 
