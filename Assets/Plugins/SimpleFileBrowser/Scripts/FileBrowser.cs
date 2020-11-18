@@ -273,6 +273,16 @@ namespace SimpleFileBrowser
 
 		[SerializeField]
 		private Text submitButtonText;
+
+
+		// Modified : 警告画面オブジェクト
+
+		[SerializeField]
+		private GameObject overwriteCaution;
+
+		[SerializeField]
+		private Text overwriteCautionText;
+
 #pragma warning restore 0649
 
 		private RectTransform rectTransform;
@@ -298,6 +308,10 @@ namespace SimpleFileBrowser
 		private readonly List<string> pathsFollowed = new List<string>();
 
 		private bool canvasDimensionsChanged;
+
+
+		// Modified : 警告対象のパス
+		private string cautionFilePath = string.Empty;
 
 		// Required in RefreshFiles() function
 		private UnityEngine.EventSystems.PointerEventData nullPointerEventData;
@@ -842,6 +856,7 @@ namespace SimpleFileBrowser
 				// In the second iteration, extract filenames from the input field
 				startIndex = 0;
 				fileCount = 0;
+				bool isDispCaution = false;
 				while( startIndex < filenameInput.Length )
 				{
 					int filenameLength = ExtractFilenameFromInput( filenameInput, ref startIndex, out nextStartIndex );
@@ -852,7 +867,15 @@ namespace SimpleFileBrowser
 					if( fileEntryIndex >= 0 )
 					{
 						// This is an existing file
-						result[fileCount++] = validFileEntries[fileEntryIndex].Path;
+
+						// Modified : ファイルが既に存在している場合は警告画面を出す
+						if (DisplayOverwriteSaveCaution)
+						{
+							isDispCaution = true;
+							ShowCautionWindow(validFileEntries[fileEntryIndex].Path);
+						}
+						else
+							result[fileCount++] = validFileEntries[fileEntryIndex].Path;
 					}
 					else
 					{
@@ -884,13 +907,30 @@ namespace SimpleFileBrowser
 					startIndex = nextStartIndex;
 				}
 
-				OnOperationSuccessful( result );
+				// Modified : 警告画面が出ていない場合のみ選択完了に遷移する
+				if (!isDispCaution)
+					OnOperationSuccessful(result);
 			}
 		}
 
 		public void OnCancelButtonClicked()
 		{
 			OnOperationCanceled( true );
+		}
+
+
+		// Modified : 警告画面のボタン操作
+		public void OnCautionSubmitButtonClicked()
+		{
+			HideCautionWindow();
+			OnOperationSuccessful(new string[]{ cautionFilePath });
+			cautionFilePath = string.Empty;
+		}
+		public void OnCautionCancelButtonClicked()
+		{
+			HideCautionWindow();
+			OnOperationCanceled(true);
+			cautionFilePath = string.Empty;
 		}
 		#endregion
 
@@ -1253,6 +1293,20 @@ namespace SimpleFileBrowser
 			gameObject.SetActive( false );
 		}
 
+		// Modified : 警告画面を表示するメソッド
+		public void ShowCautionWindow(string path)
+		{
+			cautionFilePath = path;
+			overwriteCautionText.text = $"{Path.GetFileName(path)}は既に存在します。{Environment.NewLine}上書きしますか？";
+			overwriteCaution.SetActive(true);
+		}
+
+		// Modified : 警告画面を非表示にするメソッド
+		public void HideCautionWindow()
+		{
+			overwriteCaution.SetActive(false);
+		}
+
 		public void RefreshFiles( bool pathChanged )
 		{
 			if( pathChanged )
@@ -1588,6 +1642,7 @@ namespace SimpleFileBrowser
 			Instance.Title = title;
 			Instance.SubmitButtonText = saveButtonText;
 			Instance.AcceptNonExistingFilename = !folderMode;
+			Instance.DisplayOverwriteSaveCaution = true;
 
 			Instance.Show( initialPath, initialFileName);
 
@@ -1613,6 +1668,7 @@ namespace SimpleFileBrowser
 			Instance.Title = title;
 			Instance.SubmitButtonText = loadButtonText;
 			Instance.AcceptNonExistingFilename = false;
+			Instance.DisplayOverwriteSaveCaution = false;
 
 			Instance.Show( initialPath, initialFileName);
 
