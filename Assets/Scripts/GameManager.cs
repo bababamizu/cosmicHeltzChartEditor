@@ -1,5 +1,7 @@
 ﻿using chChartEditor;
 using System;
+using System.IO;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -43,6 +45,9 @@ public class GameManager : MonoBehaviour {
 
     private readonly CommandManager commandMng = new CommandManager();
 
+    SettingData settingData;
+    string settingFilePath;
+
     private bool isSetLine = false;
 
     private bool edited = false;
@@ -76,8 +81,21 @@ public class GameManager : MonoBehaviour {
     GameObject hitGO;
 
     void Start () {
+
+#if UNITY_EDITOR
+        settingFilePath = Directory.GetCurrentDirectory() + "\\config.json";
+#else
+        settingFilePath = AppDomain.CurrentDomain.BaseDirectory + "\\config.json";
+#endif
+        settingData = new SettingData();
+
+        if (File.Exists(settingFilePath))
+            Load(settingFilePath);
+        else
+            Save(settingFilePath);
+
         Application.wantsToQuit += WantsToQuit;
-        LoadAudioVolume();
+        
         SetCamWidthFromWindowSize(Screen.width, Screen.height);
         camExpansionRate = 600f;
         edited = false;
@@ -416,14 +434,8 @@ public class GameManager : MonoBehaviour {
     /// </summary>
     private void LoadAudioVolume()
     {
-        float bgm_volume = PlayerPrefs.GetFloat("chartEditor.bgmVolume", 1f);
-        int bgm_isMute = PlayerPrefs.GetInt("chartEditor.bgmMute", 0);
-
-        float se_volume = PlayerPrefs.GetFloat("chartEditor.seVolume", 1f);
-        int se_isMute = PlayerPrefs.GetInt("chartEditor.seMute", 0);
-
-        uiMng.SetBgmVolume(bgm_volume, bgm_isMute == 1);
-        uiMng.SetSeVolume(se_volume, se_isMute == 1);
+        uiMng.SetBgmVolume(settingData.bgm_volume, settingData.bgm_isMute);
+        uiMng.SetSeVolume(settingData.se_volume, settingData.se_isMute);
     }
 
 
@@ -432,18 +444,10 @@ public class GameManager : MonoBehaviour {
     /// </summary>
     private void SaveAudioVolume()
     {
-        PlayerPrefs.SetFloat("chartEditor.bgmVolume", uiMng.GetBgmValue());
-        PlayerPrefs.SetFloat("chartEditor.seVolume", uiMng.GetSeValue());
-
-        if(uiMng.GetIsBgmMute())
-            PlayerPrefs.SetInt("chartEditor.bgmMute", 1);
-        else
-            PlayerPrefs.GetInt("chartEditor.bgmMute", 0);
-
-        if (uiMng.GetIsSeMute())
-            PlayerPrefs.SetInt("chartEditor.seMute", 1);
-        else
-            PlayerPrefs.GetInt("chartEditor.seMute", 0);
+        settingData.bgm_volume = uiMng.GetBgmValue();
+        settingData.bgm_isMute = uiMng.GetIsBgmMute();
+        settingData.se_volume = uiMng.GetSeValue();
+        settingData.se_isMute = uiMng.GetIsSeMute();
     }
 
 
@@ -466,9 +470,6 @@ public class GameManager : MonoBehaviour {
     {
         audioMng.seSource.mute = isMute;
     }
-
-
-    
     
     #endregion
 
@@ -731,10 +732,47 @@ public class GameManager : MonoBehaviour {
     #endregion
 
 
+    #region [Load  / Save]
+
+    public void Load(string filePath)
+    {
+        if (File.Exists(filePath))
+        {
+            StreamReader streamReader;
+            streamReader = new StreamReader(filePath);
+            string data = streamReader.ReadToEnd();
+            streamReader.Close();
+
+            settingData = JsonUtility.FromJson<SettingData>(data);
+
+            audioMng.SetAudioDirectory(settingData.audioDirectory);
+            noteMng.SetChartDirectory(settingData.chartDirectory);
+            LoadAudioVolume();
+        }
+    }
+
+    public void Save(string filePath)
+    {
+        settingData.audioDirectory = audioMng.initDirectory;
+        settingData.chartDirectory = noteMng.initDirectory;
+        SaveAudioVolume();
+
+        string json = JsonUtility.ToJson(settingData, true);
+
+        StreamWriter streamWriter = new StreamWriter(filePath);
+        streamWriter.Write(json);
+        streamWriter.Flush();
+        streamWriter.Close();
+
+        PlayerPrefs.DeleteAll();
+    }
+
+
+    #endregion
 
     private bool WantsToQuit()
     {
-        SaveAudioVolume();
+        Save(settingFilePath);
 
         if (isSetLine && edited) {
             // TODO : 終了時に保存するか確認するダイアログを出す (現在はExportを開くだけ)

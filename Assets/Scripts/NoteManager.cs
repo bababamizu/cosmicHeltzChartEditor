@@ -32,7 +32,8 @@ public class NoteManager : MonoBehaviour{
     [SerializeField]
     private GameObject[] objectPrefab = new GameObject[9];
 
-    private string initDirectory;
+    public string initDirectory { get; private set; }
+
     private string exportFileName = null;
 
     [System.NonSerialized]
@@ -56,15 +57,14 @@ public class NoteManager : MonoBehaviour{
         foreach (OtherObjectsType objType in otherObjTypeArray)
             objDatas.Add(new List<ObjectData>());
 
-        initDirectory = PlayerPrefs.GetString("cH.editor.chartDirectory", string.Empty);
+    }
 
+    public void SetChartDirectory(string directory)
+    {
+        initDirectory = directory;
         FileBrowser.AddQuickLink(Path.GetFileName(initDirectory), initDirectory, null);
     }
 
-    private void OnApplicationQuit()
-    {
-        PlayerPrefs.SetString("cH.editor.chartDirectory", initDirectory);
-    }
 
 
     #region [ノーツの追加を行うメソッド群]

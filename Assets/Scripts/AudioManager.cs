@@ -44,14 +44,18 @@ public class AudioManager : MonoBehaviour
 
     Coroutine coroutine = null;
 
-    private string initDirectory;
+    public string initDirectory { get; private set; }
 
     private void Start()
     {
-        initDirectory = PlayerPrefs.GetString("chartEditor.audioDirectory", string.Empty);
-        FileBrowser.AddQuickLink(Path.GetFileName(initDirectory), initDirectory, null);
         musicLength = 0f;
         videoLength = 0f;
+    }
+
+    public void SetAudioDirectory(string directory)
+    {
+        initDirectory = directory;
+        FileBrowser.AddQuickLink(Path.GetFileName(initDirectory), initDirectory, null);
     }
 
     private void Update()
@@ -69,12 +73,6 @@ public class AudioManager : MonoBehaviour
             }
         }
 
-        
-    }
-
-    private void OnApplicationQuit()
-    {
-        PlayerPrefs.SetString("chartEditor.audioDirectory", initDirectory);
     }
 
     public float GetMusicLength()
@@ -195,8 +193,6 @@ public class AudioManager : MonoBehaviour
 
         if (FileBrowser.Success)
         {
-            initDirectory = Path.GetDirectoryName(FileBrowser.Result[0]);
-
             string fileExtension = Path.GetExtension(FileBrowser.Result[0]);
 
             switch (fileExtension)
@@ -212,6 +208,14 @@ public class AudioManager : MonoBehaviour
                 case ".jpg":
                     StartCoroutine("StreamImageFile", FileBrowser.Result[0]);
                     break;
+            }
+
+            string directory = Path.GetDirectoryName(FileBrowser.Result[0]);
+            if (initDirectory != directory)
+            {
+                FileBrowser.DeleteQuickLinkPath(initDirectory);
+                FileBrowser.AddQuickLink(Path.GetFileName(directory), directory, null);
+                initDirectory = directory;
             }
         }
         coroutine = null;
