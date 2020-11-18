@@ -223,9 +223,9 @@ public class GameManager : MonoBehaviour {
             if (Input.GetKeyDown(KeyCode.S))
             {
                 if (Input.GetKey(KeyCode.LeftShift))
-                    Export(true, false);
+                    Export(true);
                 else
-                    Export(false, false);
+                    Export(false);
             }
                 
         }
@@ -719,11 +719,11 @@ public class GameManager : MonoBehaviour {
         uiMng.ImportSettings(music_id, diff, level, charter, offset);
     }
 
-    public void Export(bool isExportAs, bool permitCancel)
+    public void Export(bool isExportAs)
     {
         if (isSetLine)
         {
-            if (noteMng.Export(uiMng.GetMusicID(), uiMng.GetDiff(), uiMng.GetLevel(), uiMng.GetCharter(), isExportAs) || permitCancel)
+            if (noteMng.Export(uiMng.GetMusicID(), uiMng.GetDiff(), uiMng.GetLevel(), uiMng.GetCharter(), isExportAs))
                 SetEdited(false);
         }
         
@@ -772,13 +772,13 @@ public class GameManager : MonoBehaviour {
 
     private bool WantsToQuit()
     {
-        Save(settingFilePath);
-
         if (isSetLine && edited) {
-            // TODO : 終了時に保存するか確認するダイアログを出す (現在はExportを開くだけ)
-            // Export(true, true);
-            return true;
+            // 未保存で終了時、保存するか確認するダイアログを出す
+            uiMng.CautionWindowEnable(true);
+            return false;
         }
+
+        Save(settingFilePath);
 
         return true;
     }

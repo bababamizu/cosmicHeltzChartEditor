@@ -101,6 +101,9 @@ public class UIManager : MonoBehaviour {
     [SerializeField]
     private Button stop_down;
 
+    [SerializeField]
+    private GameObject cautionCanvas;
+
     private Snap snap_Y;
     private Snap snap_X;
 
@@ -306,7 +309,7 @@ public class UIManager : MonoBehaviour {
 
     public void ExportButton_down(bool isExportAs)
     {
-        gameMng.Export(isExportAs, false);
+        gameMng.Export(isExportAs);
     }
 
 
@@ -654,6 +657,34 @@ public class UIManager : MonoBehaviour {
     }
 
 
+
+    #endregion
+
+
+    #region [終了時保存確認画面のUI操作]
+
+    public void CautionWindowEnable(bool isOpen)
+    {
+        cautionCanvas.SetActive(isOpen);
+    }
+
+    public void ExitCaution_onSaveButtonDown()
+    {
+        CautionWindowEnable(false);
+        ExportButton_down(true);
+    }
+
+    public void ExitCaution_onExitButtonDown()
+    {
+        gameMng.SetEdited(false);
+        CautionWindowEnable(false);
+        Application.Quit();
+    }
+
+    public void ExitCaution_onCancelButtonDown()
+    {
+        CautionWindowEnable(false);
+    }
 
     #endregion
 
