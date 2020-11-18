@@ -70,6 +70,7 @@ public class GameManager : MonoBehaviour {
     int playShot_current = 0;
 
     bool isNormalPlaying;
+    bool onGUI = false;
     public commandMode cmdMode { get; private set; }
 
     GameObject hitGO;
@@ -82,7 +83,7 @@ public class GameManager : MonoBehaviour {
         edited = false;
         uiMng.SetExportEnable(false);
         UpdateNotesType(0);
-        cursorMng.SetCursor(CursorType.Default);
+        CursorChange.Instance.SetCursor(CursorType.Default);
         UpdateUndoRedoEnable();
     }
 	
@@ -128,22 +129,24 @@ public class GameManager : MonoBehaviour {
         // フィールドに対する各種操作 (楽曲読み込み済 かつ uGUIに触れていない かつ Setting画面を開いていない状態)
         if (!EventSystem.current.IsPointerOverGameObject() && isSetLine && !uiMng.GetOpenSetting())
         {
+            onGUI = false;
+
             // マウスの位置にRayを飛ばし、オブジェクトの有無によりマウスポインタを変更する
             mousePos = MousePosToWorldPos(Input.mousePosition);
             hit = Physics2D.Raycast(new Vector3(mousePos.x, mousePos.y, -0.1f), new Vector3(0f, 0f, 1f), 0.2f, rayLayerMask);
             if (hit.collider != null)
             {
                 if(hit.collider.gameObject.tag == "Edge")
-                    cursorMng.SetCursor(CursorType.LR_Arrow);
+                    CursorChange.Instance.SetCursor(CursorType.LeftRight_Arrow);
                 else if (hit.collider.gameObject.name == "end")
-                    cursorMng.SetCursor(CursorType.UD_Arrow);
+                    CursorChange.Instance.SetCursor(CursorType.UpDown_Arrow);
                 else
-                    cursorMng.SetCursor(CursorType.Choice);
+                    CursorChange.Instance.SetCursor(CursorType.Choice);
             }
             else
-                cursorMng.SetCursor(CursorType.Default);
-
+                CursorChange.Instance.SetCursor(CursorType.Default);
             
+
             // Ctrl + マウスホイール : カメラサイズ変更
             // マウスホイール        : 再生位置変更
             if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.LeftCommand))
@@ -165,8 +168,13 @@ public class GameManager : MonoBehaviour {
             if (Input.GetMouseButtonDown(1))
                 OnMouseClick(1);
         }
-        else
-            cursorMng.SetCursor(CursorType.Default);
+        else if (EventSystem.current.IsPointerOverGameObject() && !onGUI)
+        {
+            // GUIに入った瞬間のみカーソルを元に戻す(以降はGUI側のカーソル変更に従う)
+            onGUI = true;
+            CursorChange.Instance.SetCursor(CursorType.Default);
+        }
+            
 
         // その他の各種操作
 

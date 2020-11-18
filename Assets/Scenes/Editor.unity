@@ -25960,11 +25960,13 @@ MonoBehaviour:
   sprite:
   - {fileID: 2800000, guid: 482f7411da27c1e48b60d2f405d05635, type: 3}
   - {fileID: 2800000, guid: 3013c08bd61138e41affea0a47b94389, type: 3}
-  - {fileID: 2800000, guid: 91072e8683ce4074bb2798e1e667467b, type: 3}
-  - {fileID: 2800000, guid: 80cc43aa9f7802d41acd27e351d47ae9, type: 3}
+  - {fileID: 2800000, guid: 7c90008f8ab7491439b2b51b5cd598ee, type: 3}
+  - {fileID: 2800000, guid: 90c6ef380b49d314dbe81ab4a51bd78b, type: 3}
+  - {fileID: 2800000, guid: 01bbddd4229a9e14984e3677526ef251, type: 3}
   hotSpot:
   - {x: 0, y: 1}
   - {x: 6, y: 1}
+  - {x: 12, y: 12}
   - {x: 12, y: 12}
   - {x: 12, y: 12}
 --- !u!1 &1713649820

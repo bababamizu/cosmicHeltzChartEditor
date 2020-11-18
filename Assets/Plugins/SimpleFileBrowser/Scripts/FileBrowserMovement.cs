@@ -31,6 +31,7 @@ namespace SimpleFileBrowser
 		#endregion
 
 		#region Pointer Events
+
 		public void OnDragStarted( BaseEventData data )
 		{
 			PointerEventData pointer = (PointerEventData) data;

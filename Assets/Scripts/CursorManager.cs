@@ -1,25 +1,26 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public enum CursorType
 {
+    None = -1,
     Default = 0,
     Choice,
-    LR_Arrow,
-    UD_Arrow
+    LeftRight_Arrow,
+    UpDown_Arrow,
+    DownRight_Arrow
 }
 
 public class CursorManager : MonoBehaviour {
 
     [SerializeField]
-    private Texture2D[] sprite = new Texture2D[4];
+    private Texture2D[] sprite = new Texture2D[5];
     [Compact]
-    public Vector2[] hotSpot = new Vector2[4];
+    public Vector2[] hotSpot = new Vector2[5];
 
-    public void SetCursor(CursorType type)
+
+    private void Awake()
     {
-        Cursor.SetCursor(sprite[(int)type], hotSpot[(int)type], CursorMode.ForceSoftware);
+        CursorChange.Instance.SetCursorTexture(sprite, hotSpot);
     }
 
     // Texture2Dをリサイズする
